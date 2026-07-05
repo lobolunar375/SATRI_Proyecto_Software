@@ -1,0 +1,570 @@
+
+\documentclass[12pt, a4paper]{report}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% PAQUETES
+% ─────────────────────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{tcolorbox}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{mdframed}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% CONFIGURACION DE PAGINA
+% ─────────────────────────────────────────────────────────────────────────────
+\geometry{top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm, headheight=14pt}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% COLORES
+% ─────────────────────────────────────────────────────────────────────────────
+\definecolor{satriBlue}{RGB}{30, 60, 114}
+\definecolor{satriCyan}{RGB}{0, 180, 216}
+\definecolor{satriGray}{RGB}{100, 110, 130}
+\definecolor{satriGreen}{RGB}{0, 180, 80}
+\definecolor{satriRed}{RGB}{220, 50, 50}
+\definecolor{codeBg}{RGB}{248, 249, 250}
+\definecolor{codeBorder}{RGB}{200, 210, 220}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% ESTILO DE CODIGO
+% ─────────────────────────────────────────────────────────────────────────────
+\lstdefinestyle{satricode}{
+    backgroundcolor=\color{codeBg},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b,
+    commentstyle=\color{satriGray}\itshape,
+    frame=single,
+    framerule=0.5pt,
+    rulecolor=\color{codeBorder},
+    keywordstyle=\color{satriBlue}\bfseries,
+    stringstyle=\color{satriGreen},
+    numbers=left,
+    numberstyle=\tiny\color{satriGray},
+    numbersep=8pt,
+    showspaces=false,
+    showstringspaces=false,
+    tabsize=4,
+    xleftmargin=15pt
+}
+\lstset{style=satricode}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% ENCABEZADO Y PIE DE PAGINA
+% ─────────────────────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{satriGray}SATRI --- Sistema de Analisis y Triage de Incidentes}
+\fancyhead[R]{\small\color{satriGray}\leftmark}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% CAJAS INFORMATIVAS
+% ─────────────────────────────────────────────────────────────────────────────
+\tcbuselibrary{skins, breakable}
+\newtcolorbox{notabox}[1][]{colback=satriBlue!5!white, colframe=satriBlue!60!white,
+    fonttitle=\bfseries, title=Nota, #1}
+\newtcolorbox{alertbox}[1][]{colback=satriRed!5!white, colframe=satriRed!60!white,
+    fonttitle=\bfseries, title=Importante, #1}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% COMANDO PARA ESPACIO DE IMAGEN (placeholder)
+% ─────────────────────────────────────────────────────────────────────────────
+\newcommand{\imagespace}[2]{%
+\begin{figure}[htbp]
+    \centering
+    \fbox{%
+        \begin{minipage}{0.85\textwidth}
+            \centering
+            \vspace{3cm}
+            {\large\color{satriGray} [INSERTAR IMAGEN: #1]}\\[0.5em]
+            {\small\color{satriGray}(Reemplazar este recuadro con la captura de pantalla correspondiente)}
+            \vspace{3cm}
+        \end{minipage}%
+    }
+    \caption{#2}
+\end{figure}%
+}
+
+% ─────────────────────────────────────────────────────────────────────────────
+% HYPERREF
+% ─────────────────────────────────────────────────────────────────────────────
+\hypersetup{
+    colorlinks=true,
+    linkcolor=satriBlue,
+    urlcolor=satriCyan,
+    citecolor=satriBlue,
+    pdftitle={Documentacion Tecnica SATRI},
+    pdfauthor={Equipo SATRI},
+    pdfsubject={Ciberseguridad - Arquitectura de Microservicios}
+}
+
+% =============================================================================
+% INICIO DEL DOCUMENTO
+% =============================================================================
+\begin{document}
+
+% =============================================================================
+% PORTADA
+% =============================================================================
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\Huge\bfseries\color{satriBlue} SATRI}\\[0.5em]
+    {\Large\color{satriCyan} Sistema de Analisis y Triage de Incidentes}\\[1em]
+    \rule{\textwidth}{1.5pt}\\[0.3em]
+    \rule{\textwidth}{0.5pt}\\[2cm]
+
+    \imagespace{Logo o imagen de portada del proyecto SATRI}{Portada del sistema SATRI}
+
+    \vspace{1.5cm}
+    {\large\bfseries Documentacion Tecnica Completa}\\[0.5em]
+    {\normalsize Arquitectura de Microservicios $\bullet$ SOC $\bullet$ Ciberseguridad $\bullet$ CI/CD}
+
+    \vfill
+    \begin{tabular}{@{}ll@{}}
+        \textbf{Proyecto:}      & SATRI --- Plataforma de Seguridad Integral \\[4pt]
+        \textbf{Version:}       & 2.0.0 \\[4pt]
+        \textbf{Fecha:}         & Julio 2026 \\[4pt]
+        \textbf{Clasificacion:} & Uso Academico \\[4pt]
+        \textbf{Framework:}     & Python 3.11 + FastAPI + Apache Kafka + Docker \\
+    \end{tabular}
+
+    \vspace{1.5cm}
+    \rule{\textwidth}{0.5pt}\\[0.3em]
+    \rule{\textwidth}{1.5pt}
+\end{titlepage}
+
+% =============================================================================
+% TABLA DE CONTENIDOS
+% =============================================================================
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
+
+% =============================================================================
+\chapter{Introduccion y Vision General del Proyecto}
+% =============================================================================
+
+\section{Descripcion del Sistema}
+
+\textbf{SATRI} (\textit{Sistema de Analisis y Triage de Incidentes}) es una plataforma integral de ciberseguridad disenada bajo una arquitectura de microservicios orientada a eventos. Su proposito principal es replicar y automatizar las funciones de un \textit{Security Operations Center} (SOC) moderno, cubriendo el ciclo completo: desde la deteccion de una amenaza en un endpoint hasta la respuesta automatizada y su visualizacion en tiempo real.
+
+El sistema opera sobre un modelo de capas funcionales interconectadas:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Capa de Telemetria (Endpoint):} Agentes de escritorio Python compilados que se ejecutan en equipos Windows. Monitorizan procesos, archivos, red, comportamiento del usuario y, opcionalmente, el nivel del kernel (Ring-0).
+    \item \textbf{Capa de Ingesta y Normalizacion (MML):} Recepcion, validacion, estandarizacion en formato ECS (\textit{Elastic Common Schema}), deduplicacion y enriquecimiento GeoIP de todos los eventos.
+    \item \textbf{Capa de Inteligencia (MIA-VT):} Analisis de Indicadores de Compromiso (IoC) --- IPs y dominios --- mediante la API de VirusTotal y cache Redis.
+    \item \textbf{Capa de Correlacion SIEM (MCOR):} Motor de 14 reglas basadas en el framework MITRE ATT\&CK para deteccion de ataques multietapa.
+    \item \textbf{Capa de Machine Learning (MIA-ML):} Deteccion de anomalias de comportamiento de usuario (UEBA) con algoritmo Isolation Forest.
+    \item \textbf{Capa de Triage Automatizado (MTA):} Matriz de decision que combina severidad + inteligencia IoC para priorizar y asignar acciones de respuesta.
+    \item \textbf{Capa de Respuesta Automatizada (SOAR):} Integracion con sistemas de ticketing y orquestacion de respuestas (Jira, SOAR).
+    \item \textbf{Capa de Visualizacion (Dashboard SOC):} Centro de operaciones con mapas de calor geograficos y feed de alertas en tiempo real via WebSockets.
+\end{itemize}
+
+\section{Objetivos del Proyecto}
+
+\begin{enumerate}[leftmargin=2em]
+    \item Implementar un SOC completamente funcional y escalable como plataforma de seguridad real.
+    \item Demostrar el uso practico de arquitecturas orientadas a eventos con Apache Kafka.
+    \item Aplicar tecnicas de Machine Learning no supervisado (UEBA) para deteccion de amenazas avanzadas que escapan a las reglas deterministicas.
+    \item Cumplir con los principios de \textit{Privacy by Design} bajo el marco legal de la Ley N\textdegree{} 29733 de Peru.
+    \item Implementar un pipeline de integracion continua (CI) con Jenkins y pruebas automatizadas con Testcontainers.
+    \item Proporcionar visibilidad en tiempo real mediante un Dashboard SOC profesional.
+    \item Desarrollar agentes de telemetria multicapa: Agente de escritorio, extension de navegador y driver de kernel.
+\end{enumerate}
+
+\section{Marco Legal --- Privacy by Design}
+
+Todo el diseno del sistema parte de un documento de privacidad aprobado (\texttt{PRIVACY\_MODEL.md}) que actua como bloqueante: ningun modulo de recoleccion de datos puede ser implementado hasta que el modelo de privacidad sea aprobado. El marco legal de referencia es la \textbf{Ley de Proteccion de Datos Personales N\textdegree{} 29733} de Peru.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{image.png}
+    \caption{Arquitectura del sistema SATRI: vision de capas funcionales}
+\end{figure}
+
+% =============================================================================
+\chapter{Arquitectura del Sistema}
+% =============================================================================
+
+\section{Vision Arquitectonica}
+
+SATRI implementa una \textbf{arquitectura de microservicios orientada a eventos} (\textit{Event-Driven Architecture}). El componente central de comunicacion es \textbf{Apache Kafka}, que actua como bus de mensajes (\textit{message broker}) entre todos los microservicios. Este diseno desacopla completamente los componentes, permitiendo que cada uno escale de forma independiente y que el fallo de uno no propague errores al resto del sistema.
+
+\begin{table}[H]
+\centering
+\caption{Resumen de todos los servicios del sistema SATRI}
+\begin{tabular}{@{}p{2.8cm}p{3cm}p{1.5cm}p{5cm}@{}}
+\toprule
+\textbf{Servicio} & \textbf{Contenedor} & \textbf{Puerto} & \textbf{Rol} \\
+\midrule
+MML               & satri-mml          & 8000 & Ingesta, normalizacion ECS, GeoIP, Bloom Filter \\
+MIA-VT            & satri-mia-vt       & 8001 & Inteligencia de amenazas (VirusTotal API) \\
+MCOR              & satri-mcor         & 8002 & Correlacion SIEM --- 14 reglas MITRE ATT\&CK \\
+MTA               & satri-mta          & 8003 & Triage automatizado \\
+Integrations      & satri-integrations & 8004 & SOAR / Jira / Respuesta automatizada \\
+Dashboard SOC     & satri-dashboard    & 8005 & Centro de operaciones (REST + WebSocket + SPA) \\
+MIA-ML            & satri-mia-ml       & 8006 & UEBA / Anomaly Detection (Isolation Forest) \\
+\midrule
+Apache Kafka      & satri-kafka        & 9092 & Message broker principal \\
+Zookeeper         & satri-zookeeper    & 2181 & Coordinador del cluster Kafka \\
+MongoDB           & satri-mongodb      & 27017 & BD IoC, incidentes, tickets \\
+OpenSearch        & satri-opensearch   & 9200 & BD de logs enriquecidos (busqueda forense) \\
+Redis             & satri-redis        & 6379 & Cache IoC + deduplicacion Bloom \\
+Vector.dev        & satri-vector       & 5140 & Recoleccion de logs del sistema operativo \\
+Traefik           & satri-traefik      & 80/443 & API Gateway y reverse proxy \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Flujo de Datos (Pipeline Kafka)}
+
+El ciclo de vida de un evento sigue un pipeline unidireccional de enriquecimiento progresivo:
+
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{Captura:} El Agente Desktop o Vector.dev detectan un evento y lo envian al endpoint \texttt{POST /api/v1/ingest-log} del MML.
+    \item \textbf{Ingesta:} El MML valida el token de autenticacion, aplica el Filtro de Bloom para deduplicacion y publica en el topico \texttt{satri.logs.raw}.
+    \item \textbf{Normalizacion:} El Normalizer (thread interno del MML) consume \texttt{satri.logs.raw}, extrae campos con regex y convierte a formato ECS. Publica en \texttt{satri.logs.normalized}.
+    \item \textbf{Enriquecimiento GeoIP:} El Enricher consume \texttt{satri.logs.normalized}, agrega coordenadas geograficas (lat/lon), pais, ciudad y ASN usando MaxMind GeoLite2. Indexa en OpenSearch y publica en \texttt{satri.logs.enriched}.
+    \item \textbf{Inteligencia IoC:} MIA-VT consume \texttt{satri.logs.enriched}, consulta IPs/dominios en VirusTotal (cache Redis). Persiste en MongoDB y publica alertas en \texttt{satri.alerts.ioc}.
+    \item \textbf{Correlacion SIEM:} MCOR consume \texttt{satri.logs.enriched} y \texttt{satri.alerts.ioc}. Evalua 14 reglas MITRE ATT\&CK y publica en \texttt{satri.alerts.correlated}.
+    \item \textbf{Triage:} MTA consume \texttt{satri.alerts.correlated}, aplica la matriz de decision (severidad x IoC) y persiste el incidente final en MongoDB. Publica en \texttt{satri.alerts.triaged}.
+    \item \textbf{Visualizacion:} El Dashboard SOC hace polling a MongoDB y consume Kafka para emitir alertas en tiempo real via WebSockets a los analistas del SOC.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{image2.png}
+\end{center}
+
+
+\section{Topicos de Apache Kafka}
+
+\begin{table}[H]
+\centering
+\caption{Topicos Kafka del sistema SATRI, productores y consumidores}
+\begin{tabular}{@{}p{4.5cm}p{2.5cm}p{3cm}p{3cm}@{}}
+\toprule
+\textbf{Topico} & \textbf{Productor} & \textbf{Consumidor(es)} & \textbf{Contenido} \\
+\midrule
+\texttt{satri.logs.raw}          & MML           & Normalizer, Dashboard   & Logs crudos del agente \\
+\texttt{satri.logs.normalized}   & Normalizer    & Enricher GeoIP          & Logs en formato ECS \\
+\texttt{satri.logs.enriched}     & Enricher      & MIA-VT, MCOR, Dashboard & Logs con GeoIP \\
+\texttt{satri.logs.quarantine}   & Normalizer    & (almacen de errores)    & Logs con fallo de normalizacion \\
+\texttt{satri.alerts.ioc}        & MIA-VT        & MCOR, MTA               & Alertas de IoC VirusTotal \\
+\texttt{satri.alerts.correlated} & MCOR          & MTA                     & Alertas del motor SIEM \\
+\texttt{satri.alerts.triaged}    & MTA           & Dashboard, Integrations & Incidentes finales priorizados \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Red y Orquestacion de Contenedores}
+
+Todos los servicios se comunican exclusivamente dentro de una red Docker Bridge privada llamada \texttt{satri-net}. El acceso externo esta centralizado en el API Gateway \textbf{Traefik v3}. Los volúmenes persistentes garantizan que los datos de MongoDB, OpenSearch y los binarios del agente sobrevivan a reinicios de contenedores.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{image3.png}
+\end{figure}
+
+
+% =============================================================================
+\chapter{Stack Tecnologico}
+% =============================================================================
+
+\begin{table}[H]
+\centering
+\caption{Stack tecnologico completo del proyecto SATRI}
+\begin{tabular}{@{}p{4cm}p{5cm}p{3cm}@{}}
+\toprule
+\textbf{Categoria}       & \textbf{Tecnologia}                       & \textbf{Version} \\
+\midrule
+Lenguaje principal       & Python                                    & 3.11 \\
+Framework API            & FastAPI                                   & 0.109.0 \\
+Servidor ASGI            & Uvicorn                                   & 0.29.0 \\
+Message Broker           & Apache Kafka (Confluent)                  & 7.6.0 \\
+Coordinador Kafka        & Apache Zookeeper                          & 7.6.0 \\
+Cliente Kafka async      & AIOKafka                                  & latest \\
+Cliente Kafka sync       & kafka-python                              & 2.0.2 \\
+Base de datos IoC/tickets & MongoDB Community                        & 7.0 \\
+Cliente MongoDB async    & Motor                                     & 3.4.0 \\
+Base de datos logs       & OpenSearch                                & 2.13.0 \\
+Cache / Deduplicacion    & Redis                                     & 7.2 \\
+Geolocalizacion          & MaxMind GeoIP2                            & 4.8.0 \\
+Inteligencia amenazas    & VirusTotal API v3                         & REST \\
+API Gateway              & Traefik                                   & v3.0 \\
+ML Anomaly Detection     & Scikit-learn (IsolationForest)            & --- \\
+Deduplicacion            & PyBloom-live (Filtro de Bloom)            & --- \\
+Metricas                 & Prometheus Client                         & 0.20.0 \\
+Rate Limiting            & SlowAPI                                   & latest \\
+Validacion de schemas    & Pydantic                                  & 2.7.1 \\
+Logging estructurado     & Loguru                                    & 0.7.2 \\
+Recolector de logs       & Vector.dev                                & 0.36.0 \\
+Pruebas automatizadas    & Pytest + Testcontainers (Python)          & --- \\
+CI/CD                    & Jenkins                                   & --- \\
+Contenedores             & Docker + Docker Compose                   & --- \\
+Agente escritorio        & Python compilado con PyInstaller          & 3.11 \\
+Extension de navegador   & JavaScript Manifest v3                    & Chrome/Edge \\
+Driver de kernel         & C / WDM (Windows Driver Model)            & Win10/11 \\
+Autenticacion            & JWT (JSON Web Tokens)                     & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% =============================================================================
+\chapter{Microservicios --- Descripcion Detallada}
+% =============================================================================
+
+\section{MML --- Message Management Layer}
+
+\subsection{Descripcion y Rol}
+El MML es la \textbf{puerta de entrada} del sistema SATRI. Concentra cuatro responsabilidades criticas: recepcion segura de eventos, deduplicacion, normalizacion al estandar ECS y enriquecimiento geografico. Funciona como un hub que recibe trafico de los agentes de escritorio, Vector.dev y la extension de navegador, y lo distribuye al resto del sistema a traves de Kafka.
+
+\subsection{Componentes Internos}
+
+\begin{table}[H]
+\centering
+\caption{Componentes internos del microservicio MML}
+\begin{tabular}{@{}p{3cm}p{4cm}p{6cm}@{}}
+\toprule
+\textbf{Componente} & \textbf{Archivo} & \textbf{Funcion} \\
+\midrule
+API Principal    & \texttt{main.py}          & FastAPI: endpoints REST, autenticacion, rate limit \\
+Normalizer       & \texttt{normalizer.py}    & Consume \texttt{satri.logs.raw} y convierte a ECS \\
+Enricher GeoIP   & \texttt{geoip\_enrich.py} & Agrega lat/lon, pais, ASN via MaxMind GeoLite2 \\
+Filtro de Bloom  & \texttt{bloom\_dedup.py}  & Deduplicacion O(1) sin consulta a BD \\
+Cliente OpenSearch & \texttt{opensearch\_client.py} & Indexa logs enriquecidos en OpenSearch \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Endpoints REST}
+
+\begin{table}[H]
+\centering
+\caption{Endpoints expuestos por el MML (puerto 8000)}
+\begin{tabular}{@{}p{1cm}p{5cm}p{2.5cm}p{4cm}@{}}
+\toprule
+\textbf{Met.} & \textbf{Ruta} & \textbf{Auth} & \textbf{Funcion} \\
+\midrule
+POST & \texttt{/api/v1/ingest-log}          & Bearer Token & Ingesta de eventos desde agentes \\
+POST & \texttt{/api/v1/alerts}              & Bearer Token & Recepcion de alertas pre-correladas \\
+POST & \texttt{/api/v1/isolate/\{ip\}}      & Bearer Token & Aislamiento remoto de host \\
+GET  & \texttt{/api/v1/agent/config/\{ip\}} & Publico      & Configuracion de politicas para agentes \\
+GET  & \texttt{/health}                     & Publico      & Health probe (liveness) \\
+GET  & \texttt{/ready}                      & Publico      & Readiness probe (Kafka conectado) \\
+GET  & \texttt{/metrics}                    & Publico      & Metricas en formato Prometheus \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Filtro de Bloom para Deduplicacion}
+Para evitar que el mismo evento sea procesado multiples veces (problema comun en sistemas distribuidos con reintentos), el MML utiliza un \textbf{Filtro de Bloom} implementado con la libreria \texttt{pybloom-live}. La verificacion es en tiempo $O(1)$ sin necesidad de consultar ninguna base de datos. El identificador unico del evento se calcula como el hash SHA-256 de su contenido.
+
+
+\begin{center}
+    \includegraphics[width=0.85\linewidth]{image4.png}
+    \caption{MML: procesando eventos de telemetria en tiempo real}
+\end{figure}
+
+\section{MIA-VT --- Motor de Inteligencia de Amenazas}
+
+\subsection{Descripcion}
+MIA-VT consulta la reputacion de IPs y dominios sospechosos contra la \textbf{API v3 de VirusTotal}. Para optimizar el uso de la API (limite de cuota gratuita: 4 consultas/minuto), implementa una capa de cache en Redis con TTL configurable. Los resultados se persisten en MongoDB para consultas posteriores desde el Dashboard SOC.
+
+\subsection{Clasificacion de IoCs}
+
+\begin{table}[H]
+\centering
+\caption{Clasificacion de IoCs segun el score de VirusTotal}
+\begin{tabular}{@{}p{4cm}p{3cm}p{5cm}@{}}
+\toprule
+\textbf{Detecciones (vt\_score)} & \textbf{Clasificacion} & \textbf{Accion del sistema} \\
+\midrule
+0 motores         & CLEAN       & Descartar alerta, sin accion \\
+1 -- 3 motores    & SUSPICIOUS  & Generar alerta de prioridad P3 \\
+4 o mas motores   & MALICIOUS   & Generar alerta de prioridad P1/P2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{image5.png}
+    \caption{Dashboard SOC: Inteligencia de Indicadores de Compromiso (IoC) con scores VirusTotal}
+\end{figure}
+
+\section{MCOR --- Motor de Correlacion y Deteccion (SIEM)}
+
+\subsection{Descripcion}
+MCOR es el \textbf{corazon del sistema SIEM}. Implementa 14 reglas de correlacion basadas en el framework MITRE ATT\&CK. Cada regla esta implementada como un modulo Python independiente en el directorio \texttt{rules/}, lo que permite agregar o modificar reglas sin reiniciar el servicio completo.
+
+\subsection{Las 14 Reglas de Correlacion MITRE ATT\&CK}
+
+\begin{longtable}{@{}p{0.6cm}p{4cm}p{2.2cm}p{2cm}p{4cm}@{}}
+\caption{Reglas de correlacion MITRE ATT\&CK implementadas en MCOR} \\
+\toprule
+\textbf{\#} & \textbf{Nombre de la Regla} & \textbf{MITRE ID} & \textbf{Severidad} & \textbf{Condicion de Disparo} \\
+\midrule
+\endfirsthead
+\caption[]{Reglas MITRE ATT\&CK --- continuacion} \\
+\toprule
+\textbf{\#} & \textbf{Nombre de la Regla} & \textbf{MITRE ID} & \textbf{Severidad} & \textbf{Condicion de Disparo} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+01 & Fuerza Bruta SSH/RDP     & T1110      & CRITICAL & $\geq$5 fallos de auth desde misma IP / 2 min \\
+02 & Escalada via sudo        & T1548      & HIGH     & $\geq$3 fallos de sudo tras login / 5 min \\
+03 & Ataque multi-etapa       & T1110+T1548 & CRITICAL & Regla 01 seguida de Regla 02 / 10 min \\
+04 & Proceso desconocido      & T1059      & MEDIUM   & Proceso fuera de whitelist del sistema \\
+05 & Descarga de ejecutable   & T1105      & HIGH     & Descarga .exe/.ps1/.bat de fuente no confiable \\
+06 & Conexion a IP negra      & T1071      & HIGH     & Conexion a IP/dominio marcado como malicioso en IoC \\
+07 & Creacion de cuenta       & T1136      & MEDIUM   & Evento \texttt{net user /add} o \texttt{useradd} \\
+08 & Tarea programada         & T1053      & MEDIUM   & Creacion/modificacion de cron o schtasks \\
+09 & Ransomware (FIM)         & T1486      & CRITICAL & $\geq$10 archivos cifrados/renombrados en 1 min \\
+10 & Exfiltracion por volumen & T1048      & HIGH     & $\geq$500 MB enviados desde un host en 10 min \\
+11 & Movimiento lateral       & T1021      & CRITICAL & Login desde IP que antes disparo Regla 01 o 06 \\
+12 & Desactivacion de AV/FW   & T1562      & CRITICAL & Detencion de servicio de seguridad \\
+13 & DNS Tunneling            & T1572      & HIGH     & $\geq$50 consultas DNS subdominios $>$30 chars / 5 min \\
+14 & Anomalia UEBA (ML)       & T1078      & MEDIUM   & Score de MIA-ML por encima del umbral \\
+\end{longtable}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{image6.png}
+    \caption{MCOR: alertas de correlacion MITRE ATT\&CK visibles en el Dashboard SOC}
+\end{figure}
+
+\section{MIA-ML --- Motor de Analisis de Comportamiento (UEBA)}
+
+\subsection{Descripcion}
+MIA-ML implementa \textbf{UEBA} (\textit{User and Entity Behavior Analytics}) utilizando el algoritmo \textbf{Isolation Forest} de la libreria scikit-learn. Su objetivo es detectar comportamientos anomalos de usuarios legitimos que escapan a las reglas deterministicas de MCOR (ej. uso de cuentas validas en horas inusuales desde paises distintos).
+
+\subsection{Algoritmo: Isolation Forest}
+El \textit{Isolation Forest} es un algoritmo de deteccion de anomalias no supervisado:
+\begin{itemize}[leftmargin=2em]
+    \item Construye multiples arboles de decision aleatorios sobre el conjunto de comportamiento historico.
+    \item Los puntos de datos que requieren \textit{menos divisiones} para ser aislados se consideran anomalias (\textit{outliers}).
+    \item El \textbf{anomaly\_score} resultante es negativo para anomalias y positivo para comportamiento normal.
+\end{itemize}
+
+La formula del score es: $\text{score}(x) = 2^{-E(h(x)) / c(n)}$, donde $h(x)$ es la profundidad del nodo y $c(n)$ es la altura media del arbol.
+
+\subsection{Features del Modelo}
+Para cada evento de sesion, el modelo extrae las siguientes caracteristicas:
+
+\begin{table}[H]
+\centering
+\caption{Features del modelo UEBA (Isolation Forest)}
+\begin{tabular}{@{}p{3.5cm}p{8cm}@{}}
+\toprule
+\textbf{Feature} & \textbf{Descripcion} \\
+\midrule
+\texttt{hour\_sin/cos}         & Hora del dia codificada ciclicamente: $\sin(2\pi \cdot h/24)$, $\cos(2\pi \cdot h/24)$ \\
+\texttt{day\_sin/cos}          & Dia de la semana codificado ciclicamente: $\sin(2\pi \cdot d/7)$, $\cos(2\pi \cdot d/7)$ \\
+\texttt{session\_duration}     & Duracion total de la sesion en segundos \\
+\texttt{action\_frequency}     & Frecuencia promedio de acciones por minuto \\
+\texttt{msg\_length}           & Longitud del campo \texttt{message} del evento \\
+\texttt{event\_type\_hash}     & Hash numerico del tipo de evento \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La codificacion ciclica con seno/coseno es esencial para que el modelo entienda que las 23:00 y las 00:00 son horas cercanas (continuidad circular del tiempo).
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{image7.png}
+    \caption{MIA-ML: entrenamiento del modelo Isolation Forest con datos historicos reales}
+\end{figure}
+
+\section{MTA --- Motor de Triage Automatizado}
+
+\subsection{Descripcion}
+El MTA es el ultimo escalon del pipeline de deteccion. Recibe las alertas ya correladas de MCOR y aplica una \textbf{matriz de decision bimensional} que combina la severidad del evento con la clasificacion de VirusTotal del IoC involucrado, para asignar una prioridad (P1-P4) y una accion de respuesta.
+
+\subsection{Matriz de Decision de Triage}
+
+\begin{table}[H]
+\centering
+\caption{Matriz de triage automatizado del Motor MTA}
+\begin{tabular}{@{}p{2cm}p{2.5cm}p{2cm}p{5cm}@{}}
+\toprule
+\textbf{Severidad} & \textbf{IoC MALICIOUS} & \textbf{Prioridad} & \textbf{Accion Automatica} \\
+\midrule
+CRITICAL & SI  & \textbf{P1} & BLOCK + ISOLATE + Ticket Jira P1 \\
+CRITICAL & NO  & \textbf{P1} & BLOCK + ESCALATE al analista \\
+HIGH     & SI  & \textbf{P2} & BLOCK + Ticket Jira P2 \\
+HIGH     & NO  & \textbf{P2} & ESCALATE + Ticket Jira \\
+MEDIUM   & SI  & \textbf{P3} & INVESTIGATE + Ticket Jira P3 \\
+MEDIUM   & NO  & \textbf{P3} & MONITOR activo \\
+LOW      & ---  & \textbf{P4} & MONITOR pasivo (registro) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{4.png}
+    \caption{MTA: incidentes priorizados con acciones de respuesta asignadas automaticamente}
+\end{figure}
+
+\section{Dashboard SOC --- Centro de Operaciones de Seguridad}
+
+\subsection{Descripcion}
+El Dashboard SOC es la interfaz visual del sistema SATRI. Su backend esta construido en \textbf{FastAPI} con soporte para WebSockets, y su frontend es una \textbf{SPA} (\textit{Single Page Application}) desarrollada en HTML, CSS y JavaScript puro (sin frameworks), servida como archivo estatico.
+
+\subsection{Funcionalidades del Dashboard}
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Feed en Tiempo Real:} Las alertas y logs aparecen instantaneamente via WebSocket (\texttt{/ws/alerts}) sin recargar la pagina. El servidor hace polling a MongoDB y emite via \texttt{broadcast()} a todos los clientes conectados.
+    \item \textbf{Heatmap Global de Amenazas:} Mapa de calor mundial con Leaflet.js + plugin Leaflet.heat que visualiza la distribucion geografica de ataques usando las coordenadas GeoIP de los eventos.
+    \item \textbf{IoC Intelligence:} Tabla paginable con los indicadores de compromiso (IPs, dominios) detectados como maliciosos o sospechosos, junto con su score de VirusTotal.
+    \item \textbf{Terminal de Raw Logs:} Terminal dark con coloreado semantico que muestra eventos de bajo nivel en tiempo real.
+    \item \textbf{Tabla de Alertas:} Vista filtrable por severidad con acciones de aislamiento remoto y creacion de tickets.
+    \item \textbf{Aislamiento Remoto de Host:} Modal de confirmacion que envia un comando de aislamiento al agente desktop del endpoint comprometido.
+    \item \textbf{Descarga del Agente:} Seccion dedicada con instrucciones de instalacion y boton de descarga del binario \texttt{SATRI\_Protection.exe}.
+    \item \textbf{Autenticacion JWT:} Pagina de login con generacion de token JWT. Todos los endpoints de datos requieren el token en el header \texttt{Authorization: Bearer}.
+    \item \textbf{Agentes Kernel:} Seccion que lista los endpoints con el driver de kernel Ring-0 activo y su estado.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{image8.png}
+    \caption{Dashboard SOC: vista general con metricas de seguridad en tiempo real}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.85\linewidth]{image9.png}
+    \caption{Dashboard SOC: Heatmap Global de Amenazas con coordenadas GeoIP reales}
+\end{figure}
+
+% =============================================================================
+
+\end{document}
