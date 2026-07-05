@@ -1,0 +1,10 @@
+name: "Bloqueo por Fuerza Bruta Multi-etapa"
+trigger_severity: "HIGH"
+trigger_rule: "Active Intrusion & Host Compromise"
+description: "Si se detecta un intento de fuerza bruta seguido de actividad maliciosa (MCOR), escala al SOC y bloquea"
+actions:
+  - type: "slack_notify"
+    channel: "#soc-alerts"
+    message: "⚠️ INTRUSION MULTI-ETAPA desde la IP $src_ip. Evidencia de compromiso. Escalando ticket a Nivel 2."
+  - type: "create_ticket"
+    priority: "P2"

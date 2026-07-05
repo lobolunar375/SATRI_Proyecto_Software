@@ -1,0 +1,12 @@
+name: "Aislamiento por Ransomware"
+trigger_severity: "CRITICAL"
+trigger_rule: "ransomware_detected"
+description: "Aisla inmediatamente el equipo si detecta encriptacion masiva o modificaciones rapidas"
+actions:
+  - type: "isolate_host"
+    target: "$src_ip"
+  - type: "slack_notify"
+    channel: "#soc-alerts"
+    message: "🚨 RANSOMWARE DETECTADO en la IP $src_ip. El host ha sido AISLADO automáticamente por el SOAR."
+  - type: "create_ticket"
+    priority: "P1"

@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="SATRI SOC Dashboard - Sistema de Análisis y Triage de Incidentes en tiempo real"/>
+  <title>SATRI | SOC Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg-0: #060a10;
+      --bg-1: #0c1220;
+      --bg-2: #111928;
+      --bg-3: #182035;
+      --border: rgba(99,131,255,0.12);
+      --accent: #4f7cff;
+      --accent-glow: rgba(79,124,255,0.25);
+      --cyan: #00e5ff;
+      --green: #00e676;
+      --red: #ff3d71;
+      --orange: #ffaa00;
+      --yellow: #ffe57f;
+      --purple: #b388ff;
+      --text-1: #e8eeff;
+      --text-2: #8899cc;
+      --text-3: #445577;
+      --critical: #ff3d71;
+      --high: #ff7043;
+      --medium: #ffaa00;
+      --low: #4caf50;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family:'Inter',sans-serif;
+      background: var(--bg-0);
+      color: var(--text-1);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── BACKGROUND GRID ── */
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background-image:
+        linear-gradient(rgba(79,124,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,124,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events:none; z-index:0;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position:fixed; left:0; top:0; bottom:0;
+      width:220px;
+      background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+      border-right: 1px solid var(--border);
+      display:flex; flex-direction:column;
+      z-index:100; padding: 24px 0;
+    }
+
+    .logo {
+      padding: 0 20px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-mark {
+      font-size: 22px; font-weight: 900; letter-spacing:-0.5px;
+      background: linear-gradient(135deg, var(--accent), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .logo-sub { font-size:10px; color:var(--text-3); letter-spacing:2px; margin-top:2px; }
+
+    .nav { flex:1; padding: 20px 12px; display:flex; flex-direction:column; gap:4px; }
+    .nav-item {
+      display:flex; align-items:center; gap:12px;
+      padding: 10px 12px; border-radius:10px;
+      font-size:13px; font-weight:500; color:var(--text-2);
+      cursor:pointer; transition:all .2s;
+      border: 1px solid transparent;
+    }
+    .nav-item:hover, .nav-item.active {
+      background: var(--accent-glow); color:var(--text-1);
+      border-color: var(--border);
+    }
+    .nav-item .icon { font-size:16px; width:20px; text-align:center; }
+
+    .sidebar-status {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      font-size:11px;
+    }
+    .status-dot {
+      display:inline-block; width:7px; height:7px;
+      border-radius:50%; background:var(--green);
+      margin-right:6px;
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100%{ opacity:1; } 50%{ opacity:.4; }
+    }
+
+    /* ── MAIN CONTENT ── */
+    .main { margin-left:220px; min-height:100vh; position:relative; z-index:1; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      display:flex; align-items:center; justify-content:space-between;
+      padding: 20px 32px;
+      background: linear-gradient(180deg, var(--bg-1) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(20px);
+    }
+    .topbar h1 { font-size:18px; font-weight:700; }
+    .topbar .subtitle { font-size:13px; color:var(--text-2); margin-top:2px; }
+    .topbar-right { display:flex; align-items:center; gap:16px; }
+    .time-badge {
+      font-family:'JetBrains Mono', monospace;
+      font-size:13px; color:var(--cyan);
+      background: rgba(0,229,255,0.07);
+      padding: 6px 14px; border-radius:8px;
+      border: 1px solid rgba(0,229,255,0.15);
+    }
+    .refresh-btn {
+      display:flex; align-items:center; gap:8px;
+      padding: 7px 16px; border-radius:8px;
+      background: var(--accent-glow); border: 1px solid var(--border);
+      color:var(--text-1); font-size:13px; cursor:pointer;
+      transition:all .2s; font-family:inherit;
+    }
+    .refresh-btn:hover { background: rgba(79,124,255,.35); }
+
+    /* ── CONTENT ── */
+    .content { padding: 28px 32px; display:flex; flex-direction:column; gap:28px; }
+
+    /* ── STAT CARDS ── */
+    .stat-grid {
+      display:grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap:16px;
+    }
+    .stat-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius:16px; padding:20px;
+      position:relative; overflow:hidden;
+      transition: transform .2s, border-color .2s;
+    }
+    .stat-card::before {
+      content:'';
+      position:absolute; top:0; left:0; right:0; height:2px;
+    }
+    .stat-card.c-total::before  { background: linear-gradient(90deg, var(--accent), var(--cyan)); }
+    .stat-card.c-crit::before   { background: linear-gradient(90deg, var(--red), #ff6b9d); }
+    .stat-card.c-high::before   { background: linear-gradient(90deg, var(--orange), #ff7043); }
+    .stat-card.c-block::before  { background: linear-gradient(90deg, var(--purple), #7c4dff); }
+    .stat-card.c-agent::before  { background: linear-gradient(90deg, var(--green), #00bfa5); }
+    .stat-card.c-kernel::before { background: linear-gradient(90deg, #00e5ff, #7c4dff); }
+    .stat-card:hover { transform:translateY(-2px); border-color:rgba(99,131,255,.3); }
+
+    .stat-icon {
+      font-size:28px; margin-bottom:12px;
+    }
+    .stat-val {
+      font-size:36px; font-weight:800; letter-spacing:-1px;
+      font-family:'JetBrains Mono', monospace;
+    }
+    .stat-val.c-total  { color:var(--accent); }
+    .stat-val.c-crit   { color:var(--red); }
+    .stat-val.c-high   { color:var(--orange); }
+    .stat-val.c-block  { color:var(--purple); }
+    .stat-val.c-agent  { color:var(--green); }
+    .stat-val.c-kernel { background: linear-gradient(135deg,var(--cyan),var(--purple));
+                         -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .stat-label { font-size:12px; color:var(--text-2); margin-top:4px; font-weight:500; }
+    .stat-sub { font-size:11px; color:var(--text-3); margin-top:6px; }
+
+    /* ── GRID ROW ── */
+    .grid-2 { display:grid; grid-template-columns: 1fr 380px; gap:20px; align-items:start; }
+    .grid-3 { display:grid; grid-template-columns: 1fr 1fr 320px; gap:20px; align-items:start; }
+
+    /* ── PANEL ── */
+    .panel {
+      background:var(--bg-2);
+      border:1px solid var(--border);
+      border-radius:16px; overflow:hidden;
+    }
+    .panel-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 20px;
+      border-bottom:1px solid var(--border);
+    }
+    .panel-title {
+      font-size:14px; font-weight:600;
+      display:flex; align-items:center; gap:8px;
+    }
+    .panel-badge {
+      font-size:11px; padding:2px 8px; border-radius:20px;
+      background:var(--accent-glow); color:var(--accent);
+      font-weight:600;
+    }
+    .panel-body { padding:20px; }
+
+    /* ── ALERTS TABLE ── */
+    .alerts-table { width:100%; border-collapse:collapse; }
+    .alerts-table thead th {
+      font-size:11px; font-weight:600; color:var(--text-3);
+      text-transform:uppercase; letter-spacing:.8px;
+      padding:0 12px 12px; text-align:left;
+      border-bottom:1px solid var(--border);
+    }
+    .alerts-table tbody tr {
+      border-bottom:1px solid rgba(99,131,255,0.05);
+      transition:background .15s;
+    }
+    .alerts-table tbody tr:hover { background:rgba(79,124,255,0.04); }
+    .alerts-table td {
+      padding:11px 12px; font-size:12.5px; vertical-align:middle;
+    }
+
+    .sev-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:3px 10px; border-radius:6px; font-size:11px; font-weight:700;
+    }
+    .sev-badge.CRITICAL { background:rgba(255,61,113,.15); color:var(--red); }
+    .sev-badge.HIGH     { background:rgba(255,170,0,.12); color:var(--orange); }
+    .sev-badge.MEDIUM   { background:rgba(255,229,127,.1); color:var(--yellow); }
+    .sev-badge.LOW      { background:rgba(0,230,118,.1); color:var(--green); }
+
+    .action-badge {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:3px 9px; border-radius:6px; font-size:11px; font-weight:600;
+    }
+    .action-badge.BLOCK      { background:rgba(179,136,255,.12); color:var(--purple); }
+    .action-badge.ESCALATE   { background:rgba(255,112,67,.12); color:#ff7043; }
+    .action-badge.INVESTIGATE{ background:rgba(0,229,255,.1); color:var(--cyan); }
+    .action-badge.MONITOR    { background:rgba(0,230,118,.1); color:var(--green); }
+
+    .ip-cell {
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px; color:var(--cyan);
+    }
+    .rule-cell { font-size:11.5px; color:var(--text-2); max-width:160px; }
+
+    .btn-action {
+      padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600;
+      border:none; cursor:pointer; transition:all .2s; font-family:inherit;
+      margin-right:4px;
+    }
+    .btn-isolate {
+      background:rgba(255,61,113,.15); color:var(--red);
+      border:1px solid rgba(255,61,113,.3);
+    }
+    .btn-isolate:hover { background:rgba(255,61,113,.3); }
+    .btn-ticket {
+      background:rgba(79,124,255,.12); color:var(--accent);
+      border:1px solid rgba(79,124,255,.25);
+    }
+    .btn-ticket:hover { background:rgba(79,124,255,.25); }
+
+    /* ── LIVE FEED ── */
+    .live-feed {
+      display:flex; flex-direction:column; gap:8px;
+      max-height:420px; overflow-y:auto;
+    }
+    .live-feed::-webkit-scrollbar { width:4px; }
+    .live-feed::-webkit-scrollbar-thumb { background:var(--bg-3); border-radius:2px; }
+
+    .feed-item {
+      display:flex; gap:10px; align-items:flex-start;
+      padding:10px 12px; border-radius:10px;
+      background:var(--bg-3);
+      border-left:3px solid var(--border);
+      animation: slideIn .3s ease;
+    }
+    .feed-item.CRITICAL { border-left-color:var(--red); background:rgba(255,61,113,0.05); }
+    .feed-item.HIGH     { border-left-color:var(--orange); background:rgba(255,170,0,0.04); }
+    .feed-item.MEDIUM   { border-left-color:var(--yellow); }
+    .feed-item.LOW      { border-left-color:var(--green); }
+
+    @keyframes slideIn {
+      from { opacity:0; transform:translateX(10px); }
+      to   { opacity:1; transform:translateX(0); }
+    }
+
+    .feed-dot { width:8px; height:8px; border-radius:50%; margin-top:4px; flex-shrink:0; }
+    .feed-item.CRITICAL .feed-dot { background:var(--red); box-shadow:0 0 6px var(--red); }
+    .feed-item.HIGH     .feed-dot { background:var(--orange); box-shadow:0 0 6px var(--orange); }
+    .feed-item.MEDIUM   .feed-dot { background:var(--yellow); }
+    .feed-item.LOW      .feed-dot { background:var(--green); }
+
+    .feed-msg { font-size:12px; color:var(--text-1); line-height:1.5; }
+    .feed-ts  { font-size:10px; color:var(--text-3); margin-top:3px; font-family:'JetBrains Mono',monospace; }
+
+    /* ── CHART ── */
+    .chart-wrap { position:relative; height:220px; }
+
+    /* ── IOC LIST ── */
+    .ioc-list { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; }
+    .ioc-item {
+      display:flex; align-items:center; gap:12px;
+      padding:10px 14px; background:var(--bg-3);
+      border-radius:10px; border:1px solid var(--border);
+    }
+    .ioc-score {
+      min-width:38px; text-align:center;
+      font-family:'JetBrains Mono',monospace;
+      font-size:14px; font-weight:700;
+    }
+    .ioc-score.MALICIOUS  { color:var(--red); }
+    .ioc-score.SUSPICIOUS { color:var(--orange); }
+    .ioc-score.CLEAN      { color:var(--green); }
+    .ioc-val { font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--cyan); flex:1; word-break:break-all; }
+    .ioc-type { font-size:10px; color:var(--text-3); padding:2px 6px; background:var(--bg-2); border-radius:4px; }
+
+    /* ── RULES BREAKDOWN ── */
+    .rule-bars { display:flex; flex-direction:column; gap:12px; }
+    .rule-bar-item { display:flex; flex-direction:column; gap:5px; }
+    .rule-bar-label { display:flex; justify-content:space-between; font-size:12px; }
+    .rule-bar-label span:last-child { color:var(--accent); font-weight:600; }
+    .rule-bar-track {
+      height:6px; border-radius:3px; background:var(--bg-3); overflow:hidden;
+    }
+    .rule-bar-fill {
+      height:100%; border-radius:3px;
+      background:linear-gradient(90deg, var(--accent), var(--cyan));
+      transition:width .8s ease;
+    }
+
+    /* ── TOAST NOTIFICATION ── */
+    #toast-container {
+      position:fixed; bottom:28px; right:28px;
+      display:flex; flex-direction:column; gap:10px;
+      z-index:9999;
+    }
+    .toast {
+      display:flex; align-items:center; gap:12px;
+      padding:14px 18px; border-radius:12px;
+      background:var(--bg-2); border:1px solid var(--border);
+      box-shadow:0 8px 32px rgba(0,0,0,0.5);
+      animation:toastIn .3s ease;
+      max-width:360px;
+    }
+    .toast.success { border-color:rgba(0,230,118,.3); }
+    .toast.error   { border-color:rgba(255,61,113,.3); }
+    .toast.info    { border-color:rgba(79,124,255,.3); }
+    @keyframes toastIn {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .toast-icon { font-size:20px; }
+    .toast-msg  { font-size:13px; color:var(--text-1); }
+    .toast-sub  { font-size:11px; color:var(--text-2); margin-top:2px; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align:center; padding:40px 20px;
+      color:var(--text-3); font-size:13px;
+    }
+    .empty-state .icon { font-size:40px; margin-bottom:12px; }
+
+    /* ── LIVE INDICATOR ── */
+    .live-indicator {
+      display:inline-flex; align-items:center; gap:6px;
+      font-size:11px; color:var(--green); font-weight:600;
+    }
+    .live-dot {
+      width:6px; height:6px; border-radius:50%;
+      background:var(--green); box-shadow:0 0 8px var(--green);
+      animation:pulse-dot 1.5s infinite;
+    }
+
+    /* ── SCROLLBAR ── */
+    .alerts-scroll { max-height:450px; overflow-y:auto; }
+    .alerts-scroll::-webkit-scrollbar { width:4px; }
+    .alerts-scroll::-webkit-scrollbar-thumb { background:var(--bg-3); border-radius:2px; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display:none; position:fixed; inset:0;
+      background:rgba(0,0,0,.7); z-index:999;
+      backdrop-filter:blur(4px);
+      align-items:center; justify-content:center;
+    }
+    .modal-overlay.open { display:flex; }
+    .modal {
+      background:var(--bg-2); border:1px solid var(--border);
+      border-radius:16px; padding:28px;
+      max-width:420px; width:90%;
+      animation:modalIn .25s ease;
+    }
+    @keyframes modalIn {
+      from { opacity:0; transform:scale(.95); }
+      to   { opacity:1; transform:scale(1); }
+    }
+    .modal h3 { font-size:16px; font-weight:700; margin-bottom:8px; }
+    .modal p  { font-size:13px; color:var(--text-2); margin-bottom:20px; line-height:1.6; }
+    .modal-btns { display:flex; gap:10px; justify-content:flex-end; }
+    .btn-confirm {
+      padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600;
+      border:none; cursor:pointer; font-family:inherit;
+      background:var(--red); color:#fff;
+    }
+    .btn-cancel {
+      padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600;
+      border:1px solid var(--border); cursor:pointer; font-family:inherit;
+      background:transparent; color:var(--text-2);
+    }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">⬡ SATRI</div>
+    <div class="logo-sub">SOC COMMAND CENTER</div>
+  </div>
+  <div class="nav">
+    <div class="nav-item active" onclick="showSection('overview',this)">
+      <span class="icon">⬡</span> Overview
+    </div>
+    <div class="nav-item" onclick="showSection('alerts',this)">
+      <span class="icon">🔔</span> Alertas
+    </div>
+    <div class="nav-item" onclick="showSection('iocs',this)">
+      <span class="icon">🔍</span> IoC Intelligence
+    </div>
+    <div class="nav-item" onclick="showSection('livefeed',this)">
+      <span class="icon">⚡</span> Live Feed
+    </div>
+    <div class="nav-item" onclick="showSection('rawlogs',this)">
+      <span class="icon">🌊</span> Tráfico Crudo
+    </div>
+
+    <div class="nav-item" onclick="showSection('heatmap',this)">
+      <span class="icon">🗺️</span> Heatmap Global
+    </div>
+    <div class="nav-item" onclick="showSection('topology',this)">
+      <span class="icon">🕸️</span> Topología
+    </div>
+    <div class="nav-item" onclick="showSection('devices',this)">
+      <span class="icon">💻</span> Dispositivos
+    </div>
+    <div class="nav-item" onclick="showSection('kernel',this)">
+
+      <span class="icon">⚙️</span> Ring-0 Agents
+      <span style="margin-left:auto; font-size:9px; padding:1px 5px; border-radius:4px; background:rgba(0,229,255,.12); color:var(--cyan); font-weight:700;">FASE 4</span>
+    </div>
+    <div class="nav-item" onclick="showSection('downloads',this)">
+      <span class="icon">📥</span> Descargas
+    </div>
+  </div>
+  <div class="sidebar-status">
+    <span class="status-dot"></span>
+    <span style="color:var(--text-2); font-size:11.5px">SATRI Online</span>
+    <div style="margin-top:6px; color:var(--text-3); font-size:10.5px;">v2.0 · Microservicios</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <h1>🛡️ Centro de Operaciones de Seguridad</h1>
+      <div class="subtitle">Monitoreo en tiempo real · SATRI SIEM + EDR</div>
+    </div>
+    <div class="topbar-right">
+      <span class="live-indicator"><span class="live-dot"></span> EN VIVO</span>
+      <div class="time-badge" id="clock">--:--:--</div>
+      <button class="refresh-btn" onclick="loadAll()">⟳ Actualizar</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="main-content">
+
+    <!-- SECTION: OVERVIEW -->
+    <div id="section-overview">
+      <!-- STAT CARDS -->
+      <div class="stat-grid">
+        <div class="stat-card c-total">
+          <div class="stat-icon">📊</div>
+          <div class="stat-val c-total" id="stat-total">—</div>
+          <div class="stat-label">Total Alertas</div>
+          <div class="stat-sub">Histórico registrado</div>
+        </div>
+        <div class="stat-card c-crit">
+          <div class="stat-icon">🔴</div>
+          <div class="stat-val c-crit" id="stat-critical">—</div>
+          <div class="stat-label">Críticas</div>
+          <div class="stat-sub">Requieren acción inmediata</div>
+        </div>
+        <div class="stat-card c-high">
+          <div class="stat-icon">🟠</div>
+          <div class="stat-val c-high" id="stat-high">—</div>
+          <div class="stat-label">Alta Prioridad</div>
+          <div class="stat-sub">Escalamiento recomendado</div>
+        </div>
+        <div class="stat-card c-block">
+          <div class="stat-icon">🛡️</div>
+          <div class="stat-val c-block" id="stat-blocked">—</div>
+          <div class="stat-label">Bloqueadas</div>
+          <div class="stat-sub">Amenazas detenidas</div>
+        </div>
+        <div class="stat-card c-agent">
+          <div class="stat-icon">💻</div>
+          <div class="stat-val c-agent" id="stat-agents">—</div>
+          <div class="stat-label">Agentes Activos</div>
+          <div class="stat-sub">Endpoints monitoreados</div>
+        </div>
+        <div class="stat-card c-kernel" style="border-color:rgba(0,229,255,.2);">
+          <div class="stat-icon">⚙️</div>
+          <div class="stat-val c-kernel" id="stat-kernel">—</div>
+          <div class="stat-label">Ring-0 Activos</div>
+          <div class="stat-sub" style="color:var(--cyan); font-size:10px;">Kernel-Mode · Fase 4</div>
+        </div>
+      </div>
+
+      <!-- GRID: CHART + LIVE FEED -->
+      <div class="grid-2">
+        <!-- Chart -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📈 Distribución por Regla de Correlación</div>
+          </div>
+          <div class="panel-body">
+            <div class="chart-wrap">
+              <canvas id="rulesChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Feed -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">⚡ Feed en Tiempo Real</div>
+            <span class="live-indicator"><span class="live-dot"></span> LIVE</span>
+          </div>
+          <div class="panel-body" style="padding:12px;">
+            <div class="live-feed" id="live-feed-mini">
+              <div class="empty-state"><div class="icon">📡</div>Esperando eventos...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECENT ALERTS TABLE -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🔔 Alertas Recientes
+            <span class="panel-badge" id="alert-count-badge">0</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <select id="sev-filter" onchange="loadAlerts()" style="background:var(--bg-3); color:var(--text-1); border:1px solid var(--border); border-radius:7px; padding:5px 10px; font-size:12px; font-family:inherit; cursor:pointer;">
+              <option value="">Todas</option>
+              <option value="CRITICAL">Críticas</option>
+              <option value="HIGH">Altas</option>
+              <option value="MEDIUM">Medias</option>
+            </select>
+          </div>
+        </div>
+        <div class="alerts-scroll">
+          <table class="alerts-table">
+            <thead>
+              <tr>
+                <th>Severidad</th>
+                <th>IP Origen</th>
+                <th>Regla</th>
+                <th>Razón de Correlación</th>
+                <th>Decisión</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="alerts-tbody">
+              <tr><td colspan="6" class="empty-state"><div class="icon">🔍</div>Sin alertas aún...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: ALERTS (full) -->
+    <div id="section-alerts" style="display:none;">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🔔 Todas las Alertas</div>
+          <span class="panel-badge" id="all-alert-count">0</span>
+        </div>
+        <div class="alerts-scroll">
+          <table class="alerts-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Severidad</th><th>IP</th><th>Regla</th><th>Decisión</th><th>Prioridad</th><th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="full-alerts-tbody">
+              <tr><td colspan="7" class="empty-state">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: IOCs -->
+    <div id="section-iocs" style="display:none;">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🔍 Inteligencia de Indicadores de Compromiso (IoC)</div>
+          <span class="panel-badge" id="ioc-count">0 IoCs</span>
+        </div>
+        <div class="panel-body">
+          <div class="ioc-list" id="ioc-list">
+            <div class="empty-state"><div class="icon">🔍</div>Sin IoCs aún...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: LIVE FEED -->
+    <div id="section-livefeed" style="display:none;">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">⚡ Feed de Eventos en Tiempo Real</div>
+          <span class="live-indicator"><span class="live-dot"></span> WebSocket Activo</span>
+        </div>
+        <div class="panel-body" style="padding:12px;">
+          <div class="live-feed" id="live-feed-full" style="max-height:600px;">
+            <div class="empty-state"><div class="icon">📡</div>Esperando eventos del SOC...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: RAW LOGS (Tráfico Crudo) -->
+    <div id="section-rawlogs" style="display:none;">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🌊 Data Lake: Tráfico Crudo (Raw Traffic)</div>
+          <span class="live-indicator"><span class="live-dot" style="background:var(--cyan);box-shadow:0 0 8px var(--cyan);"></span> Stream Kafka Activo</span>
+        </div>
+        <div class="panel-body" style="padding:0; background: #0b0c10;">
+          <div id="raw-logs-terminal" style="padding:16px; max-height:600px; overflow-y:auto; font-family:'JetBrains Mono',monospace; font-size:11.5px; line-height:1.6; color:var(--text-2);">
+            <div style="color:var(--text-3); text-align:center; padding:20px;">Esperando tráfico desde el agente EDR y firewalls...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    <!-- SECTION: HEATMAP -->
+    <div id="section-heatmap" style="display:none;">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">🗺️ Mapa de Calor de Amenazas (Live)</div></div>
+        <div class="panel-body" style="padding:0;">
+          <div id="map" style="height:500px; width:100%; border-radius: 0 0 16px 16px; z-index: 1;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: TOPOLOGY -->
+    <div id="section-topology" style="display:none;">
+      <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">🕸️ Topología del Cluster AKS</div>
+            <button class="refresh-btn" onclick="loadTopology()" style="font-size:12px; padding:5px 12px;">⟳ Actualizar</button>
+        </div>
+        <div class="panel-body" id="topology-container" style="display:flex; gap:20px; flex-wrap:wrap; min-height: 400px; align-items:flex-start;">
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: DEVICES -->
+    <div id="section-devices" style="display:none;">
+      <div class="panel">
+        <div class="panel-header">
+            <div class="panel-title">💻 Panel Multi-dispositivo</div>
+            <button class="refresh-btn" onclick="loadDevices()" style="font-size:12px; padding:5px 12px;">⟳ Actualizar</button>
+        </div>
+        <div class="alerts-scroll">
+          <table class="alerts-table">
+            <thead><tr><th>ID Dispositivo</th><th>Hostname</th><th>IP</th><th>Status</th><th>Agente</th><th>Acciones</th></tr></thead>
+            <tbody id="devices-tbody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: KERNEL AGENTS (Fase 4) -->
+
+    <div id="section-kernel" style="display:none;">
+      <!-- Banner Ring-0 -->
+      <div style="background:linear-gradient(135deg,rgba(0,229,255,.07),rgba(124,77,255,.07)); border:1px solid rgba(0,229,255,.2); border-radius:16px; padding:24px 28px; margin-bottom:20px; display:flex; align-items:center; gap:20px;">
+        <div style="font-size:40px;">⚙️</div>
+        <div>
+          <div style="font-size:16px; font-weight:700; background:linear-gradient(135deg,var(--cyan),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">SATRI Fase 4 — Kernel-Mode Protection (Ring 0)</div>
+          <div style="font-size:13px; color:var(--text-2); margin-top:4px;">Agentes con el driver <code style="color:var(--cyan); font-family:'JetBrains Mono',monospace;">SatriDriver.sys</code> activo. Protección a nivel de kernel del sistema operativo.</div>
+        </div>
+        <div style="margin-left:auto; text-align:right;">
+          <div style="font-size:10px; color:var(--text-3); letter-spacing:1px;">ARQUITECTURA</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--cyan);">Ring 3 ↔ Ring 0</div>
+        </div>
+      </div>
+
+      <!-- Capacidades del Driver -->
+      <div class="grid-3" style="margin-bottom:20px;">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">🔒 Process Blocking</div></div>
+          <div class="panel-body">
+            <div style="font-size:13px; color:var(--text-2); line-height:1.8;">
+              <div style="color:var(--green); font-weight:600; margin-bottom:8px;">✅ Activo</div>
+              Intercepta la creación de procesos en <strong style="color:var(--text-1);">Ring 0</strong> mediante <code style="color:var(--cyan);">PsSetCreateProcessNotifyRoutineEx</code>. Bloqueo atómico antes de que el proceso llegue a user-space.
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">📋 Kernel Event Buffer</div></div>
+          <div class="panel-body">
+            <div style="font-size:13px; color:var(--text-2); line-height:1.8;">
+              <div style="color:var(--green); font-weight:600; margin-bottom:8px;">✅ Activo</div>
+              Buffer circular de <strong style="color:var(--text-1);">256 eventos</strong> en memoria no paginada. Transferencia eficiente vía <code style="color:var(--cyan);">IOCTL_SATRI_GET_EVENTS</code> al agente Python.
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">⚡ IOCTLs Disponibles</div></div>
+          <div class="panel-body">
+            <div style="display:flex; flex-direction:column; gap:6px; font-family:'JetBrains Mono',monospace; font-size:11px;">
+              <div style="color:var(--cyan);">0x800 GET_EVENTS</div>
+              <div style="color:var(--accent);">0x801 BLOCK_PID</div>
+              <div style="color:var(--orange);">0x802 SET_BLOCKLIST</div>
+              <div style="color:var(--green);">0x803 GET_STATS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Agentes con Ring-0 -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">⚙️ Agentes con Kernel Driver Activo
+            <span class="panel-badge" id="kernel-agent-count">0</span>
+          </div>
+          <button class="refresh-btn" onclick="loadKernelAgents()" style="font-size:12px; padding:5px 12px;">⟳ Actualizar</button>
+        </div>
+        <div class="panel-body" style="padding:0;">
+          <div class="alerts-scroll">
+            <table class="alerts-table">
+              <thead>
+                <tr>
+                  <th>Estado Ring-0</th>
+                  <th>IP Endpoint</th>
+                  <th>Hostname</th>
+                  <th>Última actividad</th>
+                  <th>Eventos generados</th>
+                  <th>Procesos bloqueados</th>
+                  <th>Nombres en blocklist</th>
+                </tr>
+              </thead>
+              <tbody id="kernel-agents-tbody">
+                <tr><td colspan="7" class="empty-state"><div class="icon">⚙️</div>Sin agentes Ring-0 detectados aún.<br><small style="color:var(--text-3);">Inicia satri_agent.py con el driver cargado para ver datos aquí.</small></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Guía de instalación compacta -->
+      <div class="panel" style="margin-top:20px;">
+        <div class="panel-header"><div class="panel-title">📖 Guía de Activación Ring-0</div></div>
+        <div class="panel-body">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+            <div>
+              <div style="font-size:12px; font-weight:600; color:var(--cyan); margin-bottom:10px; letter-spacing:.5px;">1. COMPILAR EL DRIVER</div>
+              <div style="background:var(--bg-3); border-radius:8px; padding:14px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-2); line-height:2;">
+                Requiere Visual Studio 2022 + WDK<br>
+                Proyecto: Empty WDM Driver (x64)<br>
+                Fuente: <span style="color:var(--cyan);">agent_kernel/satri_driver.c</span><br>
+                Output: <span style="color:var(--green);">satri_driver.sys</span>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:12px; font-weight:600; color:var(--cyan); margin-bottom:10px; letter-spacing:.5px;">2. INSTALAR (VM EN TEST MODE)</div>
+              <div style="background:var(--bg-3); border-radius:8px; padding:14px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-2); line-height:2;">
+                <span style="color:var(--orange);">bcdedit /set testsigning on</span><br>
+                <span style="color:var(--accent);">Reiniciar VM</span><br>
+                <span style="color:var(--green);">install_driver.ps1 -Mode install</span><br>
+                <span style="color:var(--cyan);">python satri_agent.py</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION: DOWNLOADS -->
+    <div id="section-downloads" style="display:none;">
+      <!-- Hero Banner -->
+      <div style="background:linear-gradient(135deg,rgba(79,124,255,.08),rgba(0,229,255,.06)); border:1px solid rgba(79,124,255,.2); border-radius:20px; padding:40px 44px; margin-bottom:28px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:-40px; right:-40px; width:200px; height:200px; background:radial-gradient(circle,rgba(79,124,255,.15),transparent 70%); pointer-events:none;"></div>
+        <div style="position:relative; z-index:1;">
+          <div style="font-size:11px; color:var(--cyan); letter-spacing:2px; font-weight:700; margin-bottom:10px;">SATRI ENDPOINT PROTECTION</div>
+          <div style="font-size:28px; font-weight:800; margin-bottom:10px;">Descarga el Agente de Protección</div>
+          <div style="font-size:14px; color:var(--text-2); max-width:600px; line-height:1.7;">Protege tu equipo con el agente EDR de SATRI. Monitoreo de procesos, anti-ransomware, escáner de descargas, firewall personal y detección de redes WiFi inseguras.</div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+        <!-- Download Card: Desktop Agent -->
+        <div class="panel" style="border-color:rgba(79,124,255,.25);">
+          <div class="panel-header">
+            <div class="panel-title">🛡️ SATRI Desktop Agent (Windows)</div>
+            <span class="panel-badge">v2.0.0</span>
+          </div>
+          <div class="panel-body">
+            <div style="font-size:13px; color:var(--text-2); line-height:1.8; margin-bottom:20px;">
+              Ejecutable portable para <strong style="color:var(--text-1);">Windows 10/11 (64-bit)</strong>. No requiere instalación ni dependencias adicionales. Solo haz doble clic para comenzar la protección.
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:24px;">
+              <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                <span style="color:var(--green);">✅</span>
+                <span style="color:var(--text-2);">Monitor de procesos maliciosos</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                <span style="color:var(--green);">✅</span>
+                <span style="color:var(--text-2);">Protección anti-ransomware en tiempo real</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                <span style="color:var(--green);">✅</span>
+                <span style="color:var(--text-2);">Escáner automático de descargas</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                <span style="color:var(--green);">✅</span>
+                <span style="color:var(--text-2);">Firewall personal con bloqueo de IPs maliciosas</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                <span style="color:var(--green);">✅</span>
+                <span style="color:var(--text-2);">Detección de redes WiFi inseguras</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                <span style="color:var(--green);">✅</span>
+                <span style="color:var(--text-2);">Telemetría al SOC en tiempo real</span>
+              </div>
+            </div>
+            <a href="/download/agent" style="display:inline-flex; align-items:center; gap:10px; padding:14px 28px; border-radius:12px; background:linear-gradient(135deg,var(--accent),#3d5afe); color:white; font-size:14px; font-weight:700; text-decoration:none; transition:all .2s; box-shadow:0 4px 20px rgba(79,124,255,.3);" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 28px rgba(79,124,255,.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(79,124,255,.3)'">
+              📥 Descargar SATRI_Protection.exe
+            </a>
+            <div style="margin-top:12px; font-size:11px; color:var(--text-3);">~43 MB · Windows 10/11 x64 · No requiere Python</div>
+          </div>
+        </div>
+
+        <!-- Download Card: Browser Extension -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🌐 Extensión de Navegador</div>
+            <span class="panel-badge">Chrome / Edge</span>
+          </div>
+          <div class="panel-body">
+            <div style="font-size:13px; color:var(--text-2); line-height:1.8; margin-bottom:20px;">
+              Extensión para <strong style="color:var(--text-1);">Google Chrome y Microsoft Edge</strong>. Detecta certificados SSL inválidos, sitios de phishing conocidos y bloquea contenido peligroso.
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:24px;">
+              <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                <span style="color:var(--green);">✅</span>
+                <span style="color:var(--text-2);">Detección de certificados SSL expirados o inválidos</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                <span style="color:var(--green);">✅</span>
+                <span style="color:var(--text-2);">Bloqueo de sitios de phishing conocidos</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; font-size:12px;">
+                <span style="color:var(--green);">✅</span>
+                <span style="color:var(--text-2);">Filtrado de contenido malicioso</span>
+              </div>
+            </div>
+            <div style="background:var(--bg-3); border-radius:10px; padding:16px; font-size:12px; color:var(--text-2); line-height:1.8;">
+              <div style="font-weight:600; color:var(--text-1); margin-bottom:6px;">📋 Instalación manual:</div>
+              1. Abre <code style="color:var(--cyan);">chrome://extensions/</code><br>
+              2. Activa <strong style="color:var(--text-1);">Modo de desarrollador</strong><br>
+              3. Clic en <strong style="color:var(--text-1);">Cargar descomprimida</strong><br>
+              4. Selecciona la carpeta <code style="color:var(--cyan);">browser-extension/</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy Notice -->
+      <div class="panel" style="margin-top:24px; border-color:rgba(0,230,118,.15);">
+        <div class="panel-header">
+          <div class="panel-title">🔐 Tu Privacidad</div>
+        </div>
+        <div class="panel-body">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; font-size:12.5px; color:var(--text-2); line-height:1.8;">
+            <div>
+              <div style="color:var(--green); font-weight:600; margin-bottom:8px;">✅ Lo que SÍ se envía:</div>
+              Tipo de amenaza detectada, severidad, fecha y hora del evento, nombre del proceso sospechoso.
+            </div>
+            <div>
+              <div style="color:var(--red); font-weight:600; margin-bottom:8px;">❌ Lo que NUNCA se envía:</div>
+              Páginas visitadas, contraseñas, archivos personales, capturas de pantalla, historial de navegación.
+            </div>
+          </div>
+          <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border); font-size:11px; color:var(--text-3);">
+            Puedes pausar la telemetría en cualquier momento (clic derecho en el ícono de bandeja → Pausar). También puedes desinstalar limpiamente desde el Panel de Control de Windows.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="login-modal" style="z-index: 99999;">
+  <div class="modal">
+    <h3>🔒 Acceso Restringido - SOC L1</h3>
+    <p>Ingrese sus credenciales de analista para acceder al dashboard.</p>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <input type="text" id="login-user" placeholder="Usuario" style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-3); color:white; font-family:inherit;" />
+      <input type="password" id="login-pass" placeholder="Contraseña" style="padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg-3); color:white; font-family:inherit;" />
+    </div>
+    <div class="modal-btns" style="margin-top:20px;">
+      <button class="btn-confirm" onclick="doLogin()" style="background:var(--accent);">Ingresar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+
+<div id="toast-container"></div>
+
+<!-- ISOLATION MODAL -->
+<div class="modal-overlay open" id="isolate-modal">
+  <div class="modal">
+    <h3>⚠️ Confirmar Aislamiento</h3>
+    <p>¿Estás seguro de que deseas aislar el host con IP <strong id="modal-ip" style="color:var(--red);font-family:'JetBrains Mono',monospace;">192.168.1.105</strong>?<br><br>Esta acción enviará un comando de bloqueo al agente EDR y cerrará todas sus conexiones de red activas.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-confirm" id="modal-confirm-btn">🔒 Aislar Host</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─────────────────────────────────────────────
+  // CLOCK
+  // ─────────────────────────────────────────────
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.toLocaleTimeString('es-CO', {hour12:false});
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+
+  // ─────────────────────────────────────────────
+  // JWT & AUTH LOGIC
+  // ─────────────────────────────────────────────
+  let jwtToken = null;
+  
+  async function doLogin() {
+    const u = document.getElementById('login-user').value;
+    const p = document.getElementById('login-pass').value;
+    
+    const params = new URLSearchParams();
+    params.append('username', u);
+    params.append('password', p);
+    
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            jwtToken = data.access_token;
+            document.getElementById('login-modal').classList.remove('open');
+            showToast('✅ Acceso Concedido', 'Bienvenido al Centro de Operaciones SATRI.', 'success');
+            
+            // Iniciar Leaflet y cargar datos ahora que tenemos auth
+            setTimeout(initMap, 500);
+            loadTopology();
+            loadDevices();
+        } else {
+            showToast('❌ Acceso Denegado', 'Credenciales incorrectas.', 'error');
+        }
+    } catch (e) {
+        showToast('❌ Error de Red', 'No se pudo contactar al backend.', 'error');
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // HEATMAP LOGIC
+  // ─────────────────────────────────────────────
+  let map = null;
+  let heatLayer = null;
+  const heatData = [];
+  
+  function initMap() {
+    if (map) return;
+    map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map);
+    
+    // Configurar capa de calor
+    heatLayer = L.heatLayer(heatData, {radius: 25, blur: 15, maxZoom: 17}).addTo(map);
+  }
+  
+  function addHeatmapPoint(lat, lon, severity) {
+      if (!heatLayer) return;
+      let intensity = 0.3;
+      if (severity === 'CRITICAL') intensity = 1.0;
+      if (severity === 'HIGH') intensity = 0.8;
+      if (severity === 'MEDIUM') intensity = 0.5;
+      
+      heatData.push([lat, lon, intensity]);
+      heatLayer.setLatLngs(heatData);
+  }
+
+  // ─────────────────────────────────────────────
+  // TOPOLOGY LOGIC
+  // ─────────────────────────────────────────────
+  async function loadTopology() {
+      if (!jwtToken) return;
+      try {
+          const res = await fetch('/api/v1/topology', {
+              headers: { 'Authorization': `Bearer ${jwtToken}` }
+          });
+          const data = await res.json();
+          const container = document.getElementById('topology-container');
+          container.innerHTML = '';
+          
+          data.nodes.forEach(node => {
+              let html = `<div style="border: 1px solid var(--cyan); background: var(--bg-3); padding: 15px; border-radius: 12px; width: 300px; box-shadow: 0 0 10px rgba(0,229,255,0.1);">
+                <div style="font-size: 14px; font-weight: bold; color: var(--text-1); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px;">🖥️ ${node.role}</div>
+                <div style="font-size: 11px; color: var(--text-2); margin-bottom: 10px;">NodePool: <code style="color:var(--accent);">${node.name}</code></div>
+                <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--text-1);">Pods:</div>
+                <div style="display:flex; flex-direction:column; gap:5px;">`;
+                
+              node.pods.forEach(pod => {
+                  html += `<div style="background: var(--bg-2); border: 1px solid var(--border); padding: 8px; border-radius: 6px; font-size: 11px; color: var(--green); display: flex; align-items: center; gap: 8px;">
+                    <span style="width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 5px var(--green);"></span>
+                    ${pod}
+                  </div>`;
+              });
+              
+              html += `</div></div>`;
+              container.innerHTML += html;
+          });
+      } catch (e) {
+          console.error("Error loading topology", e);
+      }
+  }
+
+  // ─────────────────────────────────────────────
+  // DEVICES LOGIC
+  // ─────────────────────────────────────────────
+  async function loadDevices() {
+      if (!jwtToken) return;
+      try {
+          const res = await fetch('/api/v1/devices', {
+              headers: { 'Authorization': `Bearer ${jwtToken}` }
+          });
+          const data = await res.json();
+          const tbody = document.getElementById('devices-tbody');
+          tbody.innerHTML = '';
+          
+          if (data.devices) {
+              data.devices.forEach(dev => {
+                  let statusBadge = dev.status === 'ONLINE' 
+                    ? `<span style="color:var(--green); font-weight:bold; font-size:11px;">🟢 ONLINE</span>`
+                    : `<span style="color:var(--red); font-weight:bold; font-size:11px;">🔴 OFFLINE</span>`;
+                    
+                  let tr = document.createElement('tr');
+                  tr.innerHTML = `
+                    <td style="font-family:'JetBrains Mono',monospace; color:var(--cyan);">${dev.id}</td>
+                    <td>${dev.hostname}</td>
+                    <td style="font-family:'JetBrains Mono',monospace;">${dev.ip}</td>
+                    <td>${statusBadge}</td>
+                    <td>v${dev.agent_version}</td>
+                    <td>
+                      <button class="btn-isolate" onclick="triggerDeviceIsolation('${dev.id}', '${dev.ip}')">🔒 Aislar</button>
+                    </td>
+                  `;
+                  tbody.appendChild(tr);
+              });
+          }
+      } catch (e) {
+          console.error("Error loading devices", e);
+      }
+  }
+  
+  function triggerDeviceIsolation(id, ip) {
+      document.getElementById('modal-ip').innerText = ip;
+      const modal = document.getElementById('isolate-modal');
+      modal.classList.add('open');
+      
+      document.getElementById('modal-confirm-btn').onclick = async () => {
+          try {
+              const res = await fetch(`/api/v1/devices/${id}/isolate`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${jwtToken}` }
+              });
+              if(res.ok) {
+                  showToast('🔒 Host Aislado', `El dispositivo ${id} ha sido aislado de la red.`, 'success');
+              } else {
+                  showToast('❌ Error', 'No se pudo aislar el host.', 'error');
+              }
+          } catch (e) {
+              showToast('❌ Error', 'No se pudo aislar el host.', 'error');
+          }
+          modal.classList.remove('open');
+      };
+  }
+
+  // ─────────────────────────────────────────────
+  // SECTION NAV
+
+  // ─────────────────────────────────────────────
+  function showSection(name, el) {
+    ['overview','alerts','iocs','livefeed','rawlogs','kernel','heatmap','topology','devices','downloads'].forEach(s => {
+      const sec = document.getElementById('section-'+s);
+      if (sec) sec.style.display = s===name ? '' : 'none';
+    });
+    document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+    if (el) el.classList.add('active');
+    if (name === 'alerts') loadFullAlerts();
+    if (name === 'iocs') loadIoCs();
+    if (name === 'kernel') loadKernelAgents();
+    if (name === 'rawlogs') loadRawLogs();
+    if (name === 'heatmap' && map) { setTimeout(() => map.invalidateSize(), 200); }
+  }
+
+  // ─────────────────────────────────────────────
+  // WEBSOCKET - TIEMPO REAL
+  // ─────────────────────────────────────────────
+  let wsRetries = 0;
+  function connectWS() {
+    const wsUrl = `ws://${window.location.host}/ws/alerts`;
+    const ws = new WebSocket(wsUrl);
+    ws.onmessage = (evt) => {
+      const msg = JSON.parse(evt.data);
+      if (msg.type === 'new_alert') addFeedItem(msg.data);
+      if (msg.type === 'raw_log') addRawLogItem(msg.data);
+      if (msg.type === 'action') handleActionFeedback(msg);
+    };
+    ws.onclose = () => {
+      wsRetries++;
+      setTimeout(connectWS, Math.min(wsRetries * 2000, 10000));
+    };
+    ws.onerror = () => ws.close();
+  }
+  connectWS();
+
+  function addFeedItem(alert) {
+    const sev = alert.severity || 'LOW';
+    const ip = alert.src_ip || 'N/A';
+    const rule = alert.correlation_rule || alert.rule_name || 'DETECTION';
+    const ts = new Date().toLocaleTimeString('es-CO', {hour12:false});
+    const html = `
+      <div class="feed-item ${sev}">
+        <div class="feed-dot"></div>
+        <div>
+          <div class="feed-msg"><strong>${sev}</strong> · ${rule} — IP: <span style="font-family:'JetBrains Mono',monospace;color:var(--cyan)">${ip}</span></div>
+          <div class="feed-ts">${ts}</div>
+        </div>
+      </div>`;
+    for (const feedId of ['live-feed-mini', 'live-feed-full']) {
+      const feed = document.getElementById(feedId);
+      const empty = feed.querySelector('.empty-state');
+      if (empty) empty.remove();
+      feed.insertAdjacentHTML('afterbegin', html);
+      if (feed.children.length > 40) feed.lastChild.remove();
+    }
+      
+    // Agregar al Heatmap si tiene coordenadas
+    if (alert.log_data && alert.log_data.geoip && alert.log_data.geoip.latitude && alert.log_data.geoip.longitude) {
+        addHeatmapPoint(alert.log_data.geoip.latitude, alert.log_data.geoip.longitude, alert.severity);
+    }
+  }
+
+  function addRawLogItem(log) {
+    const terminal = document.getElementById('raw-logs-terminal');
+    if (terminal.innerHTML.includes('Esperando tráfico')) {
+      terminal.innerHTML = ''; // Limpiar mensaje inicial
+    }
+    const ts = new Date().toLocaleTimeString('es-CO', {hour12:false});
+    const ip = log.src_ip || log.hostname || 'UNKNOWN';
+    const evt = log.event_type || log.facility || 'system_event';
+    const msg = log.message || JSON.stringify(log);
+    
+    // Highlight colors
+    let ipColor = "var(--cyan)";
+    let evtColor = "var(--green)";
+    if(evt.toLowerCase().includes('fail') || evt.toLowerCase().includes('block')) {
+        evtColor = "var(--red)";
+    }
+    
+    const div = document.createElement('div');
+    div.style.marginBottom = "6px";
+    div.style.borderBottom = "1px solid rgba(255,255,255,0.03)";
+    div.style.paddingBottom = "4px";
+    div.innerHTML = `<span style="color:var(--text-3)">[${ts}]</span> <span style="color:var(--purple)">TRAFFIC</span> | IP: <span style="color:${ipColor}">${ip}</span> | EVENT: <span style="color:${evtColor}">${evt}</span> | <span style="color:#d1d1d1">${msg}</span>`;
+    
+    terminal.appendChild(div);
+    if (terminal.childElementCount > 100) {
+      terminal.firstChild.remove();
+    }
+    // Auto-scroll
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function handleActionFeedback(msg) {
+    if (msg.action === 'isolate') {
+      showToast('success', '🔒 Aislamiento enviado', `IP ${msg.ip} ha sido bloqueada`);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // LOAD RAW LOGS (Historical + Live)
+  // ─────────────────────────────────────────────
+  let rawLogsLoaded = false;
+  async function loadRawLogs() {
+    if (rawLogsLoaded) return; // No recargar si ya se mostraron
+    if (!jwtToken) return; // Esperar a tener token
+    rawLogsLoaded = true;
+    try {
+      const r = await fetch('/api/raw-logs?limit=100', {
+          headers: { 'Authorization': `Bearer ${jwtToken}` }
+      });
+      const d = await r.json();
+      const terminal = document.getElementById('raw-logs-terminal');
+      if (!d.logs || d.logs.length === 0) return;
+      terminal.innerHTML = ''; // limpiar mensaje inicial
+      d.logs.forEach(log => addRawLogItem(log));
+      // Mostrar separador indicando que lo siguiente es en tiempo real
+      const sep = document.createElement('div');
+      sep.style.cssText = 'text-align:center;color:var(--cyan);font-size:11px;border:1px dashed rgba(0,229,255,.2);border-radius:6px;padding:6px;margin:10px 0;';
+      sep.textContent = '━━━ HISTÓRICO CARGADO · ESPERANDO TRÁFICO EN TIEMPO REAL ━━━';
+      terminal.appendChild(sep);
+      terminal.scrollTop = terminal.scrollHeight;
+    } catch(e) {}
+  }
+
+  // ─────────────────────────────────────────────
+  // TOAST NOTIFICATIONS
+  // ─────────────────────────────────────────────
+  function showToast(type, title, sub) {
+    const icons = { success:'✅', error:'❌', info:'ℹ️' };
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span>
+      <div><div class="toast-msg">${title}</div><div class="toast-sub">${sub}</div></div>`;
+    document.getElementById('toast-container').appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+  }
+
+  // ─────────────────────────────────────────────
+  // ISOLATION MODAL
+  // ─────────────────────────────────────────────
+  let pendingIsolateIp = null;
+  function confirmIsolate(ip) {
+    pendingIsolateIp = ip;
+    document.getElementById('modal-ip').textContent = ip;
+    document.getElementById('isolate-modal').classList.add('open');
+    document.getElementById('modal-confirm-btn').onclick = () => {
+      closeModal();
+      isolateHost(ip);
+    };
+  }
+  function closeModal() {
+    document.getElementById('isolate-modal').classList.remove('open');
+    pendingIsolateIp = null;
+  }
+
+  async function isolateHost(ip) {
+    try {
+      const r = await fetch(`/api/action/isolate/${encodeURIComponent(ip)}`, {method:'POST'});
+      const d = await r.json();
+      if (d.status === 'ok') {
+        showToast('success', '🔒 Aislamiento exitoso', `Comando enviado al agente EDR para ${ip}`);
+      } else {
+        showToast('error', '⚠️ Error de aislamiento', d.message || 'No se pudo enviar el comando');
+      }
+    } catch(e) {
+      showToast('error', '⚠️ Error de conexión', 'No se pudo contactar al módulo SOAR');
+    }
+  }
+
+  async function createTicket(alertId, ip, severity) {
+    try {
+      const r = await fetch(`/api/action/ticket/${encodeURIComponent(alertId)}?src_ip=${encodeURIComponent(ip)}&severity=${severity}`, {method:'POST'});
+      const d = await r.json();
+      if (d.ticket_id) {
+        showToast('info', '🎫 Ticket creado', `ID: ${d.ticket_id}`);
+      }
+    } catch(e) {
+      showToast('error', '⚠️ Error', 'No se pudo crear el ticket');
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // SEVERITY COLOR
+  // ─────────────────────────────────────────────
+  function sevBadge(s) {
+    const sev = (s||'LOW').toUpperCase();
+    const icons = {CRITICAL:'🔴',HIGH:'🟠',MEDIUM:'🟡',LOW:'🟢'};
+    return `<span class="sev-badge ${sev}">${icons[sev]||''} ${sev}</span>`;
+  }
+  function actionBadge(a) {
+    const act = (a||'').toUpperCase();
+    const icons = {BLOCK:'🛡️',ESCALATE:'📤',INVESTIGATE:'🔍',MONITOR:'👁️'};
+    return `<span class="action-badge ${act}">${icons[act]||''} ${act}</span>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // LOAD STATS
+  // ─────────────────────────────────────────────
+  let rulesChartInst = null;
+  async function loadStats() {
+    try {
+      if(!jwtToken) return;
+    const r = await fetch('/api/stats', {headers: {'Authorization': `Bearer ${jwtToken}`}});
+      const d = await r.json();
+      document.getElementById('stat-total').textContent    = d.total_alerts ?? 0;
+      document.getElementById('stat-critical').textContent = d.critical ?? 0;
+      document.getElementById('stat-high').textContent     = d.high ?? 0;
+      document.getElementById('stat-blocked').textContent  = d.blocked ?? 0;
+      document.getElementById('stat-agents').textContent   = d.active_agents ?? 0;
+      // Fase 4: agentes Ring-0
+      const kernelEl = document.getElementById('stat-kernel');
+      if (kernelEl) kernelEl.textContent = d.kernel_agents ?? 0;
+
+      // Render Rules Chart
+      const ctx = document.getElementById('rulesChart').getContext('2d');
+      const rules = d.rules_breakdown || [];
+      const labels = rules.map(r => r.rule || 'UNKNOWN');
+      const counts = rules.map(r => r.count);
+      const colors = ['#4f7cff','#ff3d71','#ffaa00','#00e676','#b388ff','#00e5ff'];
+
+      if (rulesChartInst) rulesChartInst.destroy();
+      rulesChartInst = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets:[{
+            label:'Alertas',
+            data: counts,
+            backgroundColor: colors.map(c => c+'33'),
+            borderColor: colors,
+            borderWidth: 2,
+            borderRadius: 6,
+          }]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{display:false}},
+          scales:{
+            x:{
+              grid:{color:'rgba(99,131,255,0.05)'},
+              ticks:{color:'#8899cc', font:{size:11, family:'JetBrains Mono'}},
+            },
+            y:{
+              grid:{color:'rgba(99,131,255,0.07)'},
+              ticks:{color:'#8899cc', font:{size:11}},
+              beginAtZero:true,
+            }
+          }
+        }
+      });
+    } catch(e) {}
+  }
+
+  // ─────────────────────────────────────────────
+  // LOAD ALERTS (overview table)
+  // ─────────────────────────────────────────────
+  async function loadAlerts() {
+    const sev = document.getElementById('sev-filter').value;
+    try {
+      const url = `/api/alerts?limit=20${sev ? '&severity='+sev : ''}`;
+      const r = await fetch(url);
+      const d = await r.json();
+      const tbody = document.getElementById('alerts-tbody');
+      document.getElementById('alert-count-badge').textContent = d.count ?? 0;
+      if (!d.alerts || d.alerts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="icon">✅</div>Sin alertas registradas</td></tr>';
+        return;
+      }
+      tbody.innerHTML = d.alerts.map(a => {
+        const id  = a.alert_id || a._id || '';
+        const ip  = a.src_ip || 'N/A';
+        const sev = (a.severity || 'LOW').toUpperCase();
+        const rule= a.correlation_rule || a.rule_name || 'UNKNOWN';
+        const reason = (a.correlation_reason || '').slice(0, 70) + (a.correlation_reason && a.correlation_reason.length > 70 ? '…' : '');
+        const act = (a.triage_decision || '').toUpperCase();
+        return `<tr>
+          <td>${sevBadge(sev)}</td>
+          <td class="ip-cell">${ip}</td>
+          <td class="rule-cell">${rule}</td>
+          <td style="font-size:12px; color:var(--text-2); max-width:200px;">${reason || '—'}</td>
+          <td>${actionBadge(act)}</td>
+          <td>
+            <button class="btn-action btn-isolate" onclick="confirmIsolate('${ip}')">🔒 Aislar</button>
+            <button class="btn-action btn-ticket" onclick="createTicket('${id}','${ip}','${sev}')">🎫 Ticket</button>
+          </td>
+        </tr>`;
+      }).join('');
+    } catch(e) {}
+  }
+
+  // ─────────────────────────────────────────────
+  // FULL ALERTS TABLE
+  // ─────────────────────────────────────────────
+  async function loadFullAlerts() {
+    try {
+      const r = await fetch('/api/alerts?limit=100');
+      const d = await r.json();
+      document.getElementById('all-alert-count').textContent = d.count ?? 0;
+      const tbody = document.getElementById('full-alerts-tbody');
+      if (!d.alerts || d.alerts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sin alertas</td></tr>';
+        return;
+      }
+      tbody.innerHTML = d.alerts.map(a => {
+        const id  = (a.alert_id || a._id || '').slice(0,12);
+        const ip  = a.src_ip || 'N/A';
+        const sev = (a.severity || 'LOW').toUpperCase();
+        const rule= a.correlation_rule || 'UNKNOWN';
+        const act = (a.triage_decision || '').toUpperCase();
+        const prio= a.priority || '—';
+        return `<tr>
+          <td style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-3);">${id}</td>
+          <td>${sevBadge(sev)}</td>
+          <td class="ip-cell">${ip}</td>
+          <td class="rule-cell">${rule}</td>
+          <td>${actionBadge(act)}</td>
+          <td style="font-size:12px; color:var(--accent);">${prio}</td>
+          <td>
+            <button class="btn-action btn-isolate" onclick="confirmIsolate('${ip}')">🔒 Aislar</button>
+            <button class="btn-action btn-ticket" onclick="createTicket('${id}','${ip}','${sev}')">🎫 Ticket</button>
+          </td>
+        </tr>`;
+      }).join('');
+    } catch(e) {}
+  }
+
+  // ─────────────────────────────────────────────
+  // IOC INTELLIGENCE
+  // ─────────────────────────────────────────────
+  async function loadIoCs() {
+    try {
+      if(!jwtToken) return;
+      const r = await fetch('/api/iocs', {headers: {'Authorization': `Bearer ${jwtToken}`}});
+      const d = await r.json();
+      const list = document.getElementById('ioc-list');
+      document.getElementById('ioc-count').textContent = (d.iocs?.length || 0) + ' IoCs';
+      if (!d.iocs || d.iocs.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="icon">🔍</div>Sin IoCs maliciosos detectados</div>';
+        return;
+      }
+      list.innerHTML = d.iocs.map(ioc => {
+        const label = ioc.vt_label || 'UNKNOWN';
+        const score = ioc.vt_score ?? 0;
+        const val   = ioc.ioc_value || '—';
+        const type  = ioc.ioc_type || '—';
+        return `<div class="ioc-item">
+          <div class="ioc-score ${label}">${score}</div>
+          <div class="ioc-val">${val}</div>
+          <span class="ioc-type">${type}</span>
+          <span class="sev-badge ${label === 'MALICIOUS' ? 'CRITICAL' : 'HIGH'}" style="font-size:10px; padding:2px 7px;">${label}</span>
+        </div>`;
+      }).join('');
+    } catch(e) {}
+  }
+
+  // ─────────────────────────────────────────────
+  // KERNEL AGENTS (Fase 4)
+  // ─────────────────────────────────────────────
+  async function loadKernelAgents() {
+    try {
+      const r = await fetch('/api/kernel-status');
+      const d = await r.json();
+      const tbody = document.getElementById('kernel-agents-tbody');
+      const countBadge = document.getElementById('kernel-agent-count');
+      if (countBadge) countBadge.textContent = d.count ?? 0;
+
+      if (!d.kernel_agents || d.kernel_agents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="icon">⚙️</div>Sin agentes Ring-0 detectados aún.<br><small style="color:var(--text-3);">Inicia satri_agent.py con el driver cargado.</small></td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = d.kernel_agents.map(ag => {
+        const stats = ag.driver_stats || {};
+        const ts = ag.last_seen ? new Date(ag.last_seen).toLocaleString('es-CO') : '—';
+        const ip = ag.ip || 'N/A';
+        const host = (ag.hostname || 'unknown').replace('kernel_driver_', '');
+        return `<tr>
+          <td><span class="sev-badge" style="background:rgba(0,229,255,.12);color:var(--cyan);border:1px solid rgba(0,229,255,.2);">⚙️ Ring-0 ON</span></td>
+          <td class="ip-cell">${ip}</td>
+          <td style="font-size:12px; color:var(--text-1);">${host}</td>
+          <td style="font-size:11px; color:var(--text-3); font-family:'JetBrains Mono',monospace;">${ts}</td>
+          <td style="font-family:'JetBrains Mono',monospace; color:var(--accent);">${stats.total_events_generated ?? '—'}</td>
+          <td style="font-family:'JetBrains Mono',monospace; color:var(--red);">${stats.total_processes_blocked ?? '—'}</td>
+          <td style="font-family:'JetBrains Mono',monospace; color:var(--orange);">${stats.blocklist_name_count ?? '—'}</td>
+        </tr>`;
+      }).join('');
+    } catch(e) {}
+  }
+
+  // ─────────────────────────────────────────────
+  // LOAD ALL
+  // ─────────────────────────────────────────────
+  async function loadAll() {
+    await Promise.all([loadStats(), loadAlerts()]);
+  }
+
+  // Auto-refresh every 10 seconds
+  loadAll();
+  setInterval(loadAll, 10000);
+</script>
+</body>
+</html>
