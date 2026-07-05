@@ -1,0 +1,29 @@
+{
+    "server_ip": "127.0.0.1",
+    "block_enabled": true,
+    "host_isolation": false,
+    "policy": {
+        "ransomware_threshold": 3,
+        "blacklist_ips": [
+            "185.220.101.47",
+            "45.33.22.11",
+            "109.244.11.22"
+        ],
+        "blacklist_keywords": [
+            "deceptive site", "dangerous site", "sitio engañoso", "sitio peligroso",
+            "la conexión no es privada", "la conexion no es privada", "privacy error",
+            "error de privacidad", "privacidad", "privacy", "anonymous-proxy-servers", "jondo",
+            "no es seguro", "not secure", "phishing", "scam", "exploit", "hack",
+            "bancolombia", "sucursal virtual", "banco", "verify account",
+            "wallet recovery", "seed phrase", "metamask", "binance login"
+        ],
+        "exclusion_keywords": [
+            "google search", "wikipedia", "youtube", "tutorial", "educacion", "prevent"
+        ],
+        "blacklist_apps": [
+            "mimikatz.exe", "nc.exe", "netcat.exe", "nmap.exe", "wireshark.exe",
+            "advanced_ip_scanner.exe", "anydesk.exe", "teamviewer.exe",
+            "discord.exe", "spotify.exe", "steam.exe", "utorrent.exe"
+        ]
+    }
+}

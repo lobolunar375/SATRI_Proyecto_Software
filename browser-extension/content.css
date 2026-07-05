@@ -1,0 +1,9 @@
+/* SATRI v2 — Content Script Styles */
+#satri-warning-banner {
+  animation: satri-slide-down 0.3s ease-out;
+}
+
+@keyframes satri-slide-down {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}

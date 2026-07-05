@@ -1,0 +1,39 @@
+[Version]
+Signature="$WINDOWS NT$"
+Class=System
+ClassGuid={4d36e97d-e325-11ce-bfc1-08002be10318}
+Provider=%ManufacturerName%
+CatalogFile=SatriDriver.cat
+DriverVer=05/28/2026,1.0.0.0
+
+[DestinationDirs]
+DefaultDestDir = 12 ; %windir%\system32\drivers
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+satri_driver.sys = 1,,
+
+[DefaultInstall]
+CopyFiles=DriverCopyFiles
+
+[DriverCopyFiles]
+satri_driver.sys
+
+[DefaultInstall.Services]
+AddService = SatriDriver, 0x00000002, SatriDriver_Service_Inst
+
+[SatriDriver_Service_Inst]
+DisplayName    = %ServiceName%
+Description    = %ServiceDesc%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\satri_driver.sys
+
+[Strings]
+ManufacturerName="SATRI Security Solutions"
+DiskName="SATRI Installation Disk"
+ServiceName="SatriDriver"
+ServiceDesc="SATRI EDR Kernel Mode Driver"

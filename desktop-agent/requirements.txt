@@ -1,0 +1,5 @@
+psutil==5.9.8
+watchdog==4.0.0
+requests==2.31.0
+pyinstaller==6.5.0
+websockets==12.0

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SATRI Protection</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 340px;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #0f0f23;
+      color: #e0e0f0;
+      padding: 0;
+    }
+    .header {
+      background: linear-gradient(135deg, #16213e, #0f3460);
+      padding: 16px 20px;
+      text-align: center;
+      border-bottom: 2px solid #e94560;
+    }
+    .header h1 {
+      font-size: 18px;
+      color: #e94560;
+      margin-bottom: 4px;
+    }
+    .header .subtitle {
+      font-size: 11px;
+      color: #a0a0b0;
+    }
+    .status-section {
+      padding: 16px 20px;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #1a1a3e;
+    }
+    .status-row:last-child { border-bottom: none; }
+    .status-label {
+      font-size: 12px;
+      color: #a0a0b0;
+    }
+    .status-value {
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-value.connected { color: #4caf50; }
+    .status-value.disconnected { color: #f44336; }
+    .mode-section {
+      padding: 12px 20px;
+      background: #16213e;
+    }
+    .mode-section h3 {
+      font-size: 13px;
+      color: #e94560;
+      margin-bottom: 10px;
+    }
+    .mode-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .mode-option input[type="radio"] {
+      accent-color: #e94560;
+    }
+    .mode-desc {
+      font-size: 10px;
+      color: #707080;
+      margin-left: 22px;
+      margin-top: 2px;
+    }
+    .privacy-notice {
+      padding: 12px 20px;
+      background: #0a0a1a;
+      font-size: 10px;
+      color: #505060;
+      text-align: center;
+      line-height: 1.4;
+    }
+    .privacy-notice strong { color: #e94560; }
+    .footer {
+      padding: 10px 20px;
+      text-align: center;
+      font-size: 10px;
+      color: #404050;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🛡️ SATRI Protection</h1>
+    <div class="subtitle">Extensión de Seguridad v2.0</div>
+  </div>
+
+  <div class="status-section">
+    <div class="status-row">
+      <span class="status-label">App de escritorio</span>
+      <span id="bridge-status" class="status-value disconnected">⚪ Verificando...</span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">Dominios de phishing</span>
+      <span id="phishing-count" class="status-value">0 cargados</span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">Modo activo</span>
+      <span id="current-mode" class="status-value">Aviso</span>
+    </div>
+  </div>
+
+  <div class="mode-section">
+    <h3>Modo de protección</h3>
+    <label class="mode-option">
+      <input type="radio" name="mode" value="warn" id="mode-warn">
+      <span>🔔 Modo Aviso</span>
+    </label>
+    <div class="mode-desc">Muestra un banner de advertencia que puedes ignorar</div>
+
+    <label class="mode-option">
+      <input type="radio" name="mode" value="auto" id="mode-auto">
+      <span>🛑 Modo Automático</span>
+    </label>
+    <div class="mode-desc">Cierra la pestaña automáticamente al detectar amenaza</div>
+  </div>
+
+  <div class="privacy-notice">
+    <strong>🔒 Privacidad:</strong> Esta extensión <strong>NO</strong> envía las URLs que visitas,
+    ni el contenido de las páginas, ni tu historial de navegación.
+    Solo reporta el <em>tipo de amenaza</em> detectada (ej. "certificado inválido").
+  </div>
+
+  <div class="footer">
+    SATRI Endpoint Protection &copy; 2026
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
