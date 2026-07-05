@@ -1,0 +1,56 @@
+# Environments
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+logs/
+*.log
+mml_logs.txt
+
+# Node/React
+node_modules/
+npm-debug.log*
+
+# LaTeX (Docs)
+docs/*.aux
+docs/*.fdb_latexmk
+docs/*.fls
+docs/*.log
+docs/*.out
+docs/*.synctex.gz
+docs/*.toc
+docs/*.lof
+docs/*.lot
+
+# Windows/Mac
+.DS_Store
+Thumbs.db

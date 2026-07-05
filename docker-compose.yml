@@ -1,0 +1,287 @@
+version: "3.9"
+
+services:
+
+  # ─────────────────────────────────────────
+  # Apache Kafka + Zookeeper
+  # ─────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: satri-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - satri-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: satri-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - satri-net
+
+  # ─────────────────────────────────────────
+  # OpenSearch (reemplazo OSS de Elasticsearch)
+  # ─────────────────────────────────────────
+  opensearch:
+    image: opensearchproject/opensearch:2.13.0
+    container_name: satri-opensearch
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=Satri@2025!
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - satri-net
+
+  # ─────────────────────────────────────────
+  # Redis OSS
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: satri-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - satri-net
+
+  # ─────────────────────────────────────────
+  # MongoDB Community
+  # ─────────────────────────────────────────
+  mongodb:
+    image: mongo:7.0
+    container_name: satri-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: satri
+      MONGO_INITDB_ROOT_PASSWORD: satri2025
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - satri-net
+
+
+
+
+  # ─────────────────────────────────────────
+  # Traefik API Gateway
+  # ─────────────────────────────────────────
+  traefik:
+    image: traefik:v3.0
+    container_name: satri-traefik
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - satri-net
+
+  # ─────────────────────────────────────────
+  # MML - Microservicio de Monitoreo de Logs
+  # ─────────────────────────────────────────
+  mml:
+    build:
+      context: ./backend-aks/frontline/mml
+      dockerfile: Dockerfile
+    container_name: satri-mml
+    depends_on:
+      - kafka
+      - redis
+      - opensearch
+      - mongodb
+    environment:
+      KAFKA_BROKER: kafka:9092
+      REDIS_HOST: redis
+      OPENSEARCH_HOST: opensearch
+      MONGO_URI: mongodb://satri:satri2025@mongodb:27017
+    networks:
+      - satri-net
+    ports:
+      - "8000:8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mml.rule=PathPrefix(`/api`)"
+      
+  # ─────────────────────────────────────────
+  # Vector.dev - Agente de Recolección (B1)
+  # ─────────────────────────────────────────
+  vector:
+    image: timberio/vector:0.36.0-debian
+    container_name: satri-vector
+    ports:
+      - "5140:5140"
+    volumes:
+      - ./infra/vector/vector.toml:/etc/vector/vector.toml:ro
+      - /var/log:/var/log:ro
+    depends_on:
+      - kafka
+    networks:
+      - satri-net
+
+
+  # ─────────────────────────────────────────
+  # MIA_VT - Microservicio de Inteligencia de Amenazas
+  # ─────────────────────────────────────────
+  mia_vt:
+    build:
+      context: ./backend-aks/brain/mia_vt
+      dockerfile: Dockerfile
+    container_name: satri-mia-vt
+    depends_on:
+      - kafka
+      - redis
+      - mongodb
+    environment:
+      KAFKA_BROKER: kafka:9092
+      REDIS_HOST: redis
+      MONGO_URI: mongodb://satri:satri2025@mongodb:27017
+      VIRUSTOTAL_API_KEY: ${VIRUSTOTAL_API_KEY}
+    ports:
+      - "8001:8001"
+    networks:
+      - satri-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mia-vt.rule=PathPrefix(`/api/mia-vt`)"
+
+  # ─────────────────────────────────────────
+  # MCOR - Motor de Correlación / SIEM Central
+  # ─────────────────────────────────────────
+  mcor:
+    build:
+      context: ./backend-aks/frontline/mcor
+      dockerfile: Dockerfile
+    container_name: satri-mcor
+    depends_on:
+      - kafka
+      - mongodb
+    environment:
+      KAFKA_BROKER: kafka:9092
+      MONGO_URI: mongodb://satri:satri2025@mongodb:27017
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./backend-aks/frontline/mcor/rules:/app/rules
+    networks:
+      - satri-net
+
+  # ─────────────────────────────────────────
+  # MIA-ML - Machine Learning (UEBA) Anomaly Detection
+  # ─────────────────────────────────────────
+  mia_ml:
+    build:
+      context: ./backend-aks/frontline/mia_ml
+      dockerfile: Dockerfile
+    container_name: satri-mia-ml
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKER: kafka:9092
+    ports:
+      - "8006:8006"
+    networks:
+      - satri-net
+
+  # ─────────────────────────────────────────
+  # MTA - Motor de Triage Automatizado
+  # ─────────────────────────────────────────
+  mta:
+    build:
+      context: ./backend-aks/brain/mta
+      dockerfile: Dockerfile
+    container_name: satri-mta
+    depends_on:
+      - kafka
+      - integrations
+      - mongodb
+    environment:
+      KAFKA_BROKER: kafka:9092
+      INTEGRATIONS_URL: http://integrations:8004
+      MONGO_URI: mongodb://satri:satri2025@mongodb:27017
+    ports:
+      - "8003:8003"
+    networks:
+      - satri-net
+
+  # ─────────────────────────────────────────
+  # SOAR Engine - Respuesta Automatizada
+  # ─────────────────────────────────────────
+  integrations:
+    build:
+      context: ./backend-aks/brain/integrations
+      dockerfile: Dockerfile
+    container_name: satri-integrations
+    depends_on:
+      - kafka
+      - mml
+    environment:
+      KAFKA_BROKER: kafka:9092
+      MML_API_URL: http://mml:8000/api/v1
+    ports:
+      - "8004:8004"
+    networks:
+      - satri-net
+
+  # ─────────────────────────────────────────
+  # Dashboard SOC - Centro de Operaciones
+  # ─────────────────────────────────────────
+  dashboard:
+    build:
+      context: ./backend-aks/brain/dashboard-soc
+      dockerfile: Dockerfile
+    container_name: satri-dashboard
+    depends_on:
+      - mongodb
+      - integrations
+    environment:
+      MONGO_URI: mongodb://satri:satri2025@mongodb:27017
+      INTEGRATIONS_URL: http://integrations:8004
+    ports:
+      - "8005:8005"
+    networks:
+      - satri-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=PathPrefix(`/soc`)"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dashboard_downloads:/app/downloads
+
+
+
+# ─────────────────────────────────────────
+# Volumes
+# ─────────────────────────────────────────
+volumes:
+  mongo_data:
+  opensearch_data:
+  dashboard_downloads:
+
+# ─────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────
+networks:
+  satri-net:
+    driver: bridge
