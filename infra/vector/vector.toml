@@ -1,0 +1,25 @@
+# /etc/vector/vector.toml
+[sources.syslog_input]
+type = "syslog"
+address = "0.0.0.0:5140"
+mode = "tcp"
+
+[sources.file_input]
+type = "file"
+include = ["/var/log/*.log", "/var/log/audit/*.log"]
+
+[transforms.add_correlation_id]
+type = "remap"
+inputs = ["syslog_input", "file_input"]
+source = '''
+  .correlation_id = uuid_v4()
+  .ingested_at = now()
+  .source_microservice = "MML-v1.0"
+'''
+
+[sinks.kafka_output]
+type = "kafka"
+inputs = ["add_correlation_id"]
+bootstrap_servers = "kafka:9092"
+topic = "satri.logs.raw"
+encoding.codec = "json"
